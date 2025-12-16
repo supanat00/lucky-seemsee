@@ -16,6 +16,13 @@ function ShakeScreen({ bgColor, message, isStarted, onStartClick, onBack, onSequ
     }, [])
 
     const startSequence = useCallback(() => {
+        if (timerRef.current) {
+            clearInterval(timerRef.current)
+            timerRef.current = null
+        }
+
+        if (frames.length === 0) return undefined
+
         setIsPlaying(true)
         setFrameIndex(0)
 
@@ -27,11 +34,8 @@ function ShakeScreen({ bgColor, message, isStarted, onStartClick, onBack, onSequ
             setFrameIndex((current) => {
                 const next = current + 1
                 if (next >= totalFrames) {
-                    clearInterval(timerRef.current)
-                    timerRef.current = null
-                    setIsPlaying(false)
                     onSequenceDone?.()
-                    return totalFrames - 1
+                    return 0 // loop
                 }
                 return next
             })
@@ -45,9 +49,22 @@ function ShakeScreen({ bgColor, message, isStarted, onStartClick, onBack, onSequ
         }
     }, [frames, onSequenceDone])
 
+    // autoplay loop so we can verify sequence without needing to shake
+    useEffect(() => {
+        if (frames.length === 0) return
+        let cleanupFn
+        const rafId = requestAnimationFrame(() => {
+            cleanupFn = startSequence()
+        })
+
+        return () => {
+            cancelAnimationFrame(rafId)
+            cleanupFn?.()
+        }
+    }, [frames.length, startSequence])
+
     useEffect(() => {
         if (!shakeTrigger || frames.length === 0) return
-        if (isPlaying) return
 
         let cleanupFn
         const rafId = requestAnimationFrame(() => {
@@ -58,7 +75,7 @@ function ShakeScreen({ bgColor, message, isStarted, onStartClick, onBack, onSequ
             cancelAnimationFrame(rafId)
             cleanupFn?.()
         }
-    }, [shakeTrigger, frames.length, startSequence, isPlaying])
+    }, [shakeTrigger, frames.length, startSequence])
 
     const currentFrame = frames[frameIndex] ?? null
 
