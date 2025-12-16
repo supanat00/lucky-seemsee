@@ -30,7 +30,6 @@ function ShakeScreen({ onBack, onSequenceDone, shakeTrigger }) {
     }, [frames])
 
     const startSequence = useCallback(() => {
-        if (isPlaying) return undefined
         if (timerRef.current) {
             clearInterval(timerRef.current)
             timerRef.current = null
@@ -78,8 +77,9 @@ function ShakeScreen({ onBack, onSequenceDone, shakeTrigger }) {
                 clearTimeout(timeoutRef.current)
                 timeoutRef.current = null
             }
+            setIsPlaying(false)
         }
-    }, [frames, onSequenceDone, isPlaying])
+    }, [frames, onSequenceDone])
 
     useEffect(() => {
         if (!shakeTrigger || frames.length === 0) return
@@ -94,6 +94,21 @@ function ShakeScreen({ onBack, onSequenceDone, shakeTrigger }) {
             cleanupFn?.()
         }
     }, [shakeTrigger, frames.length, startSequence])
+
+    // cleanup timers on unmount
+    useEffect(() => {
+        return () => {
+            if (timerRef.current) {
+                clearInterval(timerRef.current)
+                timerRef.current = null
+            }
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current)
+                timeoutRef.current = null
+            }
+            setIsPlaying(false)
+        }
+    }, [])
 
     const currentFrame = frames[frameIndex] ?? null
 
