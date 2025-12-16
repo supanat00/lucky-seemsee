@@ -78,6 +78,13 @@ function App() {
     document.head.appendChild(script)
   }, [])
 
+  // preload โมเดลม้าไฟไว้ล่วงหน้า เพื่อให้แสดงได้ทันทีเมื่อเข้าหน้า
+  useEffect(() => {
+    fetch(horseModel).catch((err) => {
+      console.error('preload horse model failed', err)
+    })
+  }, [])
+
   // เปิดกล้องหน้าเป็นพื้นหลังตั้งแต่เข้าแอป
   useEffect(() => {
     async function startCamera() {
