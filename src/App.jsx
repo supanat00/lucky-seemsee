@@ -28,7 +28,6 @@ function App() {
   const [fortuneIndex, setFortuneIndex] = useState(null)
   const [selectedTopic, setSelectedTopic] = useState('')
   const [selectedZodiac, setSelectedZodiac] = useState('')
-  const [motionAllowed, setMotionAllowed] = useState(false)
 
   const lastShakeTimeRef = useRef(0)
   const videoRef = useRef(null)
@@ -57,13 +56,13 @@ function App() {
   }, [])
 
   useEffect(() => {
-    if (view !== 'shake' || !motionAllowed) return
+    if (view !== 'shake') return
 
     window.addEventListener('devicemotion', handleShake)
     return () => {
       window.removeEventListener('devicemotion', handleShake)
     }
-  }, [handleShake, view, motionAllowed])
+  }, [handleShake, view])
 
   // โหลดสคริปต์ model-viewer ถ้ายังไม่มี (สำหรับหน้า horse)
   useEffect(() => {
@@ -122,23 +121,15 @@ function App() {
     setView('home')
   }
 
-  const requestMotionPermission = async () => {
+  const goToShake = async () => {
     try {
       const DeviceMotionEventRef = window.DeviceMotionEvent
       if (DeviceMotionEventRef && typeof DeviceMotionEventRef.requestPermission === 'function') {
-        const result = await DeviceMotionEventRef.requestPermission()
-        setMotionAllowed(result === 'granted')
-      } else {
-        setMotionAllowed(true) // not needed on this platform
+        await DeviceMotionEventRef.requestPermission().catch(() => null)
       }
     } catch (err) {
       console.error(err)
-      setMotionAllowed(true) // best-effort allow listener
     }
-  }
-
-  const goToShake = async () => {
-    await requestMotionPermission()
     setView('shake')
   }
 
