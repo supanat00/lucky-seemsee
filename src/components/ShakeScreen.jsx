@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import step2 from '../assets/images/step2.png'
 
-function ShakeScreen({ bgColor, message, isStarted, onStartClick, onBack, onSequenceDone, shakeTrigger }) {
+function ShakeScreen({ onBack, onSequenceDone, shakeTrigger }) {
     const [frameIndex, setFrameIndex] = useState(0)
     const [isPlaying, setIsPlaying] = useState(false)
     const timerRef = useRef(null)
+    const preloadRef = useRef([])
 
     // โหลดภาพทั้งหมดจากโฟลเดอร์ stick เป็น image-sequence
     const frames = useMemo(() => {
@@ -14,6 +16,17 @@ function ShakeScreen({ bgColor, message, isStarted, onStartClick, onBack, onSequ
             .sort()
             .map((key) => merged[key])
     }, [])
+
+    // preload frames for smoother playback
+    useEffect(() => {
+        preloadRef.current = []
+        frames.forEach((src) => {
+            const img = new Image()
+            img.src = src
+            if (img.decode) img.decode().catch(() => { })
+            preloadRef.current.push(img)
+        })
+    }, [frames])
 
     const startSequence = useCallback(() => {
         if (timerRef.current) {
@@ -27,7 +40,7 @@ function ShakeScreen({ bgColor, message, isStarted, onStartClick, onBack, onSequ
         setFrameIndex(0)
 
         const totalFrames = frames.length
-        const fps = 18
+        const fps = 10 // ช้าลงเพื่อให้การเปลี่ยนภาพนุ่มนวลขึ้น
         const interval = 1000 / fps
 
         timerRef.current = setInterval(() => {
@@ -48,20 +61,6 @@ function ShakeScreen({ bgColor, message, isStarted, onStartClick, onBack, onSequ
             }
         }
     }, [frames, onSequenceDone])
-
-    // autoplay loop so we can verify sequence without needing to shake
-    useEffect(() => {
-        if (frames.length === 0) return
-        let cleanupFn
-        const rafId = requestAnimationFrame(() => {
-            cleanupFn = startSequence()
-        })
-
-        return () => {
-            cancelAnimationFrame(rafId)
-            cleanupFn?.()
-        }
-    }, [frames.length, startSequence])
 
     useEffect(() => {
         if (!shakeTrigger || frames.length === 0) return
@@ -86,34 +85,19 @@ function ShakeScreen({ bgColor, message, isStarted, onStartClick, onBack, onSequ
                     <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
             </button>
-            <div className="shake-container">
-                <h1>เสี่ยงเซียมซี</h1>
-                <p className="shake-message">{message}</p>
-
+            <div className="shake-container only-sequence">
                 <div className="stick-preview">
+                    <img src={step2} alt="" aria-hidden="true" className="stick-bg" />
                     {currentFrame ? (
                         <img
                             src={currentFrame}
                             alt="เซียมซี"
                             className={`stick-frame ${isPlaying ? 'playing' : ''}`}
-                            style={{ backgroundColor: bgColor }}
                         />
                     ) : (
-                        <div className="stick-placeholder" style={{ backgroundColor: bgColor }} />
+                        <div className="stick-placeholder" />
                     )}
                 </div>
-
-                <button
-                    className="start-button"
-                    type="button"
-                    onClick={onStartClick}
-                    disabled={isStarted}
-                >
-                    {isStarted ? 'กำลังรอการเขย่า...' : 'เริ่มต้น'}
-                </button>
-                <p className="note">
-                    เขย่าอุปกรณ์หรือเคลื่อนที่เร็ว ๆ เพื่อเล่นแอนิเมชันไม้เซียมซี
-                </p>
             </div>
         </div>
     )

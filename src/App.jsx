@@ -8,9 +8,6 @@ import horseModel from './assets/models/house_test.glb'
 
 function App() {
   const [view, setView] = useState('home') // 'home' | 'shake' | 'horse'
-  const [isStarted, setIsStarted] = useState(false)
-  const [message, setMessage] = useState('กดปุ่มด้านล่างเพื่อเริ่มต้น')
-  const [bgColor, setBgColor] = useState('#242424')
   const [cameraError, setCameraError] = useState('')
   const [captureMode, setCaptureMode] = useState('photo') // 'photo' | 'video'
   const [isRecording, setIsRecording] = useState(false)
@@ -40,12 +37,11 @@ function App() {
     if (magnitude > threshold && now - lastShakeTimeRef.current > minInterval) {
       lastShakeTimeRef.current = now
       setShakeTrigger((v) => v + 1) // trigger image sequence
-      setMessage('กำลังเสี่ยงเซียมซี...')
     }
   }, [])
 
   useEffect(() => {
-    if (!isStarted || view !== 'shake') return
+    if (view !== 'shake') return
 
     async function enableMotion() {
       try {
@@ -56,16 +52,13 @@ function App() {
         ) {
           const result = await DeviceMotionEventRef.requestPermission()
           if (result !== 'granted') {
-            setMessage('ไม่สามารถเปิดใช้งานการตรวจจับการเขย่าได้ (permission ถูกปฏิเสธ)')
             return
           }
         }
 
         window.addEventListener('devicemotion', handleShake)
-        setMessage('โปรดเขย่าหน้าจอ')
       } catch (err) {
         console.error(err)
-        setMessage('เบราว์เซอร์นี้ไม่รองรับ devicemotion หรือไม่สามารถใช้งานได้')
       }
     }
 
@@ -74,7 +67,7 @@ function App() {
     return () => {
       window.removeEventListener('devicemotion', handleShake)
     }
-  }, [isStarted, handleShake, view])
+  }, [handleShake, view])
 
   // โหลดสคริปต์ model-viewer ถ้ายังไม่มี (สำหรับหน้า horse)
   useEffect(() => {
@@ -122,28 +115,15 @@ function App() {
     }
   }, [videoRef])
 
-  const onStartClick = () => {
-    setIsStarted(true)
-  }
-
   const goHome = () => {
-    setIsStarted(false)
-    setMessage('กดปุ่มด้านล่างเพื่อเริ่มต้น')
-    setBgColor('#242424')
     setView('home')
   }
 
   const goToShake = () => {
-    setIsStarted(false)
-    setMessage('กดปุ่มด้านล่างเพื่อเริ่มต้น')
-    setBgColor('#242424')
     setView('shake')
   }
 
   const goToHorse = () => {
-    setIsStarted(false)
-    setMessage('กดปุ่มด้านล่างเพื่อเริ่มต้น')
-    setBgColor('#242424')
     setPreview({ type: null, url: null })
     setIsRecording(false)
     setCaptureMode('photo')
@@ -249,12 +229,7 @@ function App() {
   return (
     <CameraStage videoRef={videoRef}>
       <ShakeScreen
-        bgColor={bgColor}
-        message={message}
-        isStarted={isStarted}
-        onStartClick={onStartClick}
         onBack={goHome}
-        onSequenceDone={() => setMessage('เขย่าอีกครั้งเพื่อเสี่ยงใหม่')}
         shakeTrigger={shakeTrigger}
       />
     </CameraStage>
