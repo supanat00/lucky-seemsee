@@ -4,7 +4,19 @@ import CameraStage from './components/CameraStage'
 import HomeScreen from './components/HomeScreen'
 import HorseScreen from './components/HorseScreen'
 import ShakeScreen from './components/ShakeScreen'
+import FortuneScreen from './components/FortuneScreen'
+import WallpaperScreen from './components/WallpaperScreen'
 import horseModel from './assets/models/house_test.glb'
+import head1 from './assets/head_text/head_text01.png'
+import head2 from './assets/head_text/head_text02.png'
+import head3 from './assets/head_text/head_text03.png'
+import head4 from './assets/head_text/head_text04.png'
+import head5 from './assets/head_text/head_text05.png'
+import text1 from './assets/text/text01.png'
+import text2 from './assets/text/text02.png'
+import text3 from './assets/text/text03.png'
+import text4 from './assets/text/text04.png'
+import text5 from './assets/text/text05.png'
 
 function App() {
   const [view, setView] = useState('home') // 'home' | 'shake' | 'horse'
@@ -13,6 +25,9 @@ function App() {
   const [isRecording, setIsRecording] = useState(false)
   const [preview, setPreview] = useState({ type: null, url: null }) // type: 'photo' | 'video'
   const [shakeTrigger, setShakeTrigger] = useState(0)
+  const [fortuneIndex, setFortuneIndex] = useState(null)
+  const [selectedTopic, setSelectedTopic] = useState('')
+  const [selectedZodiac, setSelectedZodiac] = useState('')
 
   const lastShakeTimeRef = useRef(0)
   const videoRef = useRef(null)
@@ -137,6 +152,16 @@ function App() {
     setView('horse')
   }
 
+  const goToFortune = () => {
+    const idx = Math.floor(Math.random() * 5)
+    setFortuneIndex(idx)
+    setView('fortune')
+  }
+
+  const goToWallpaper = () => {
+    setView('wallpaper')
+  }
+
   const capturePhoto = () => {
     if (!videoRef.current) return
     const videoEl = videoRef.current
@@ -233,11 +258,70 @@ function App() {
     )
   }
 
+  if (view === 'fortune') {
+    const headList = [head1, head2, head3, head4, head5]
+    const textList = [text1, text2, text3, text4, text5]
+    const idx = fortuneIndex ?? 0
+    return (
+      <CameraStage videoRef={videoRef}>
+        <FortuneScreen
+          onBack={goHome}
+          onConfirm={(type) => {
+            if (type === 'wallpaper') {
+              goToWallpaper()
+            }
+          }}
+          headSrc={headList[idx]}
+          textSrc={textList[idx]}
+        />
+      </CameraStage>
+    )
+  }
+
+  if (view === 'wallpaper') {
+    const topicOptions = [
+      { value: 'health', label: 'สุขภาพ' },
+      { value: 'love', label: 'ความรัก' },
+      { value: 'career', label: 'การงาน' },
+      { value: 'money', label: 'การเงิน' },
+    ]
+    const zodiacOptions = [
+      { value: 'rat', label: 'ชวด' },
+      { value: 'ox', label: 'ฉลู' },
+      { value: 'tiger', label: 'ขาล' },
+      { value: 'rabbit', label: 'เถาะ' },
+      { value: 'dragon', label: 'มะโรง' },
+      { value: 'snake', label: 'มะเส็ง' },
+      { value: 'horse', label: 'มะเมีย' },
+      { value: 'goat', label: 'มะแม' },
+      { value: 'monkey', label: 'วอก' },
+      { value: 'rooster', label: 'ระกา' },
+      { value: 'dog', label: 'จอ' },
+      { value: 'pig', label: 'กุน' },
+    ]
+
+    return (
+      <CameraStage videoRef={videoRef}>
+        <WallpaperScreen
+          onBack={goHome}
+          onCreate={goHome}
+          topicOptions={topicOptions}
+          zodiacOptions={zodiacOptions}
+          selectedTopic={selectedTopic}
+          selectedZodiac={selectedZodiac}
+          setSelectedTopic={setSelectedTopic}
+          setSelectedZodiac={setSelectedZodiac}
+        />
+      </CameraStage>
+    )
+  }
+
   return (
     <CameraStage videoRef={videoRef}>
       <ShakeScreen
         onBack={goHome}
         shakeTrigger={shakeTrigger}
+        onSequenceDone={goToFortune}
       />
     </CameraStage>
   )

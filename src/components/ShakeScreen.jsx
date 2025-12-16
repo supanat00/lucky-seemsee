@@ -5,6 +5,7 @@ function ShakeScreen({ onBack, onSequenceDone, shakeTrigger }) {
     const [frameIndex, setFrameIndex] = useState(4) // เริ่มจาก stick0004
     const [isPlaying, setIsPlaying] = useState(false)
     const timerRef = useRef(null)
+    const timeoutRef = useRef(null)
     const preloadRef = useRef([])
 
     // โหลดภาพทั้งหมดจากโฟลเดอร์ stick เป็น image-sequence
@@ -29,9 +30,14 @@ function ShakeScreen({ onBack, onSequenceDone, shakeTrigger }) {
     }, [frames])
 
     const startSequence = useCallback(() => {
+        if (isPlaying) return undefined
         if (timerRef.current) {
             clearInterval(timerRef.current)
             timerRef.current = null
+        }
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current)
+            timeoutRef.current = null
         }
 
         if (frames.length === 0) return undefined
@@ -42,25 +48,38 @@ function ShakeScreen({ onBack, onSequenceDone, shakeTrigger }) {
         const totalFrames = frames.length
         const fps = 10 // ช้าลงเพื่อให้การเปลี่ยนภาพนุ่มนวลขึ้น
         const interval = 1000 / fps
+        const duration = 3000 + Math.random() * 2000 // 3-5 วินาที
 
         timerRef.current = setInterval(() => {
             setFrameIndex((current) => {
                 const next = current + 1
                 if (next >= totalFrames) {
-                    onSequenceDone?.()
-                    return 0 // loop
+                    return 0
                 }
                 return next
             })
         }, interval)
+
+        timeoutRef.current = setTimeout(() => {
+            if (timerRef.current) {
+                clearInterval(timerRef.current)
+                timerRef.current = null
+            }
+            setIsPlaying(false)
+            onSequenceDone?.()
+        }, duration)
 
         return () => {
             if (timerRef.current) {
                 clearInterval(timerRef.current)
                 timerRef.current = null
             }
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current)
+                timeoutRef.current = null
+            }
         }
-    }, [frames, onSequenceDone])
+    }, [frames, onSequenceDone, isPlaying])
 
     useEffect(() => {
         if (!shakeTrigger || frames.length === 0) return
@@ -98,6 +117,9 @@ function ShakeScreen({ onBack, onSequenceDone, shakeTrigger }) {
                         <div className="stick-placeholder" />
                     )}
                 </div>
+                <button type="button" className="manual-shake" onClick={() => startSequence()}>
+                    เขย่า
+                </button>
             </div>
         </div>
     )

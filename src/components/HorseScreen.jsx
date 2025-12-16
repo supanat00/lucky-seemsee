@@ -1,3 +1,12 @@
+import { Canvas } from '@react-three/fiber'
+import { Suspense, useEffect, useMemo } from 'react'
+import { useGLTF } from '@react-three/drei'
+import GLBModel from './GLBModel'
+import houseTestModel from '../assets/models/house_test.glb'
+
+// Preload default model once at module load
+useGLTF.preload(houseTestModel)
+
 function HorseScreen({
   onBack,
   captureMode,
@@ -14,25 +23,46 @@ function HorseScreen({
     setCaptureMode(captureMode === 'photo' ? 'video' : 'photo')
   }
 
+  const canvasKey = useMemo(() => modelSrc || 'horse-canvas', [modelSrc])
+
+  // Preload incoming modelSrc (if different) before render to reduce flicker
+  useEffect(() => {
+    const target = modelSrc || houseTestModel
+    if (!target) return
+    try {
+      useGLTF.preload(target)
+    } catch (err) {
+      console.error('preload model failed', err)
+    }
+  }, [modelSrc])
+
   return (
     <div className="app-root horse-root">
       <button className="back-icon" type="button" onClick={onBack} aria-label="Back">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
       <div className="horse-container minimal">
         <div className="model-frame minimal">
-          <model-viewer
-            src={modelSrc}
-            alt="Horse blessing"
-            autoplay
-            ar
-            animation-name="Take 001"
-            disable-zoom
-            interaction-policy="allow-when-focused"
-            exposure="1"
-          />
+          <Canvas
+            key={canvasKey}
+            camera={{ position: [0, 0, 5], fov: 50 }}
+            style={{ width: '100%', height: '100%', background: 'transparent' }}
+          >
+            <ambientLight intensity={1} />
+            <directionalLight position={[5, 5, 5]} intensity={1.5} />
+            <pointLight position={[-5, -5, -5]} intensity={0.5} />
+            <Suspense fallback={null}>
+              <GLBModel
+                modelPath={modelSrc || houseTestModel}
+                animationName="loop"
+                scale={1.5} // ลดขนาดลง ~20%
+                position={[0, -1, 0]} // ขยับลงด้านล่าง
+              />
+            </Suspense>
+
+          </Canvas>
         </div>
 
         <div className="capture-panel minimal">
