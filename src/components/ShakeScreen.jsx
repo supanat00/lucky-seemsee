@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import step2 from '../assets/images/step2.png'
 
 function ShakeScreen({ onBack, onSequenceDone, shakeTrigger }) {
-    const [frameIndex, setFrameIndex] = useState(0)
+    const [frameIndex, setFrameIndex] = useState(4) // เริ่มจาก stick0004
     const [isPlaying, setIsPlaying] = useState(false)
     const timerRef = useRef(null)
     const preloadRef = useRef([])

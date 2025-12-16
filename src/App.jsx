@@ -14,12 +14,13 @@ function App() {
   const [preview, setPreview] = useState({ type: null, url: null }) // type: 'photo' | 'video'
   const [shakeTrigger, setShakeTrigger] = useState(0)
 
-  const lastShakeTimeRef = useRef(0)
   const videoRef = useRef(null)
   const streamRef = useRef(null)
   const mediaRecorderRef = useRef(null)
   const recordedChunksRef = useRef([])
   const recordingTimeoutRef = useRef(null)
+  const isShakingRef = useRef(false)
+  const shakeTimeoutRef = useRef(null)
 
   const handleShake = useCallback((event) => {
     const acc = event.accelerationIncludingGravity || event.acceleration
@@ -30,13 +31,28 @@ function App() {
     const z = acc.z || 0
 
     const magnitude = Math.sqrt(x * x + y * y + z * z)
-    const now = Date.now()
     const threshold = 15
-    const minInterval = 800
 
-    if (magnitude > threshold && now - lastShakeTimeRef.current > minInterval) {
-      lastShakeTimeRef.current = now
-      setShakeTrigger((v) => v + 1) // trigger image sequence
+    if (magnitude > threshold) {
+      // เริ่มจับเวลาการเขย่าต่อเนื่องประมาณ 3 วินาที
+      if (!isShakingRef.current && !shakeTimeoutRef.current) {
+        isShakingRef.current = true
+        shakeTimeoutRef.current = setTimeout(() => {
+          // ยังอยู่ในสถานะกำลังเขย่าอยู่
+          if (isShakingRef.current) {
+            setShakeTrigger((v) => v + 1) // trigger image sequence
+          }
+          isShakingRef.current = false
+          shakeTimeoutRef.current = null
+        }, 3000)
+      }
+    } else {
+      // หยุดเขย่า: reset ตัวจับเวลา
+      isShakingRef.current = false
+      if (shakeTimeoutRef.current) {
+        clearTimeout(shakeTimeoutRef.current)
+        shakeTimeoutRef.current = null
+      }
     }
   }, [])
 
@@ -66,6 +82,11 @@ function App() {
 
     return () => {
       window.removeEventListener('devicemotion', handleShake)
+      isShakingRef.current = false
+      if (shakeTimeoutRef.current) {
+        clearTimeout(shakeTimeoutRef.current)
+        shakeTimeoutRef.current = null
+      }
     }
   }, [handleShake, view])
 

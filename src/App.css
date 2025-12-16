@@ -175,9 +175,6 @@ body {
   transition: transform 120ms ease;
   position: relative;
   z-index: 1;
-}
-
-.stick-frame.playing {
   transform: translateY(20px);
 }
 
