@@ -188,6 +188,12 @@ body {
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
 }
 
+.manual-shake.secondary {
+  background: rgba(255, 255, 255, 0.85);
+  color: #7a0c0c;
+  border-color: rgba(122, 12, 12, 0.4);
+}
+
 .start-button,
 .note,
 .shake-message,

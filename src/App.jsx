@@ -58,27 +58,7 @@ function App() {
   useEffect(() => {
     if (view !== 'shake') return
 
-    async function enableMotion() {
-      try {
-        const DeviceMotionEventRef = window.DeviceMotionEvent
-        if (
-          DeviceMotionEventRef &&
-          typeof DeviceMotionEventRef.requestPermission === 'function'
-        ) {
-          const result = await DeviceMotionEventRef.requestPermission()
-          if (result !== 'granted') {
-            return
-          }
-        }
-
-        window.addEventListener('devicemotion', handleShake)
-      } catch (err) {
-        console.error(err)
-      }
-    }
-
-    enableMotion()
-
+    window.addEventListener('devicemotion', handleShake)
     return () => {
       window.removeEventListener('devicemotion', handleShake)
     }
