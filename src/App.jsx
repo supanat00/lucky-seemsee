@@ -6,13 +6,6 @@ import HorseScreen from './components/HorseScreen'
 import ShakeScreen from './components/ShakeScreen'
 import horseModel from './assets/models/house_test.glb'
 
-function getRandomColor() {
-  const r = Math.floor(Math.random() * 256)
-  const g = Math.floor(Math.random() * 256)
-  const b = Math.floor(Math.random() * 256)
-  return `rgb(${r}, ${g}, ${b})`
-}
-
 function App() {
   const [view, setView] = useState('home') // 'home' | 'shake' | 'horse'
   const [isStarted, setIsStarted] = useState(false)
@@ -46,7 +39,6 @@ function App() {
 
     if (magnitude > threshold && now - lastShakeTimeRef.current > minInterval) {
       lastShakeTimeRef.current = now
-      setBgColor(getRandomColor())
       setShakeTrigger((v) => v + 1) // trigger image sequence
       setMessage('กำลังเสี่ยงเซียมซี...')
     }
