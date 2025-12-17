@@ -1,3 +1,7 @@
+/* ============================================
+   RESET & BASE STYLES
+   ============================================ */
+
 html,
 body {
   margin: 0;
@@ -6,6 +10,13 @@ body {
   height: 100%;
   overflow: hidden;
   -webkit-tap-highlight-color: transparent;
+}
+
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
 }
 
 /* ลบ outline และ tap highlight สำหรับทุกปุ่ม */
@@ -21,12 +32,9 @@ button:active {
   outline: none;
 }
 
-#root {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  height: 100%;
-}
+/* ============================================
+   LAYOUT - CAMERA STAGE
+   ============================================ */
 
 .camera-stage {
   position: relative;
@@ -71,21 +79,9 @@ button:active {
   z-index: 2;
 }
 
-.home-root {
-  background: none;
-  color: #fefefe;
-}
-
-.home-container {
-  width: 100%;
-  max-width: 420px;
-  background: transparent;
-  border-radius: 18px;
-  padding: 1.75rem 1.5rem;
-  box-shadow: none;
-  text-align: center;
-  backdrop-filter: none;
-}
+/* ============================================
+   BUTTONS - CTA BUTTONS
+   ============================================ */
 
 .cta-buttons {
   display: flex;
@@ -119,6 +115,37 @@ button:active {
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
 }
 
+.cta-button.primary {
+  background: linear-gradient(135deg, #ff7a18, #af002d 70%);
+  color: #fff5eb;
+}
+
+.cta-button.secondary {
+  background: linear-gradient(135deg, #444, #222);
+  color: #f6f6f6;
+}
+
+.cta-button.disabled {
+  background: #f1d2c1;
+  color: #a35a38;
+  cursor: not-allowed;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.cta-button.primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.32);
+}
+
+.cta-button.secondary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.28);
+}
+
+/* ============================================
+   BUTTONS - IMAGE BUTTONS
+   ============================================ */
+
 .image-button {
   background: none;
   border: none;
@@ -150,32 +177,299 @@ button:active {
   opacity: 0.5;
 }
 
-.cta-button.primary {
-  background: linear-gradient(135deg, #ff7a18, #af002d 70%);
-  color: #fff5eb;
+/* ============================================
+   BUTTONS - BACK ICON
+   ============================================ */
+
+.back-icon {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  width: 48px;
+  height: 48px;
+  border-radius: 0;
+  border: none;
+  background: none;
+  color: #fff;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  box-shadow: none;
+  padding: 8px;
+  z-index: 100;
+  pointer-events: auto;
+  transition: opacity 0.2s ease;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.cta-button.secondary {
-  background: linear-gradient(135deg, #444, #222);
-  color: #f6f6f6;
+.back-icon:focus {
+  outline: none;
 }
 
-.cta-button.disabled {
-  background: #f1d2c1;
-  color: #a35a38;
+.back-icon:active {
+  outline: none;
+  opacity: 0.6;
+}
+
+.back-icon:hover {
+  opacity: 0.7;
+}
+
+.back-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* ============================================
+   BUTTONS - CAPTURE CIRCLE
+   ============================================ */
+
+.capture-circle {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border: none;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.capture-circle .ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 0.35em solid #ffffff;
+  opacity: 1;
+  box-shadow: none;
+  transition: all 0.25s ease;
+}
+
+.capture-circle .core {
+  position: absolute;
+  top: 9%;
+  left: 9%;
+  right: 9%;
+  bottom: 9%;
+  border-radius: 50%;
+  background: #ffffff; /* โหมดถ่ายภาพเป็นสีขาว */
+  opacity: 1;
+  transition: all 0.25s ease;
+}
+
+.capture-circle.video .core {
+  background: #ff3b30; /* โหมดวิดีโอเป็นสีแดง */
+}
+
+.capture-circle.recording .ring {
+  border: none;
+  box-shadow: none;
+  background: none;
+}
+
+.capture-circle.recording .ring .progress-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.capture-circle.recording .ring .progress-circle {
+  animation: draw-ring 30s linear forwards;
+}
+
+.capture-circle.recording .core {
+  border-radius: 8px;
+  top: 25%;
+  left: 25%;
+  right: 25%;
+  bottom: 25%;
+}
+
+.capture-circle:hover .core {
+  opacity: 1;
+}
+
+.capture-circle:active .ring {
+  opacity: 1;
+}
+
+.capture-circle:active .core {
+  opacity: 0.85;
+}
+
+.capture-circle:focus {
+  outline: none;
+}
+
+.capture-circle:active {
+  outline: none;
+}
+
+/* ============================================
+   BUTTONS - MODE SWITCH
+   ============================================ */
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+  cursor: pointer;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.switch:focus {
+  outline: none;
+}
+
+.switch:active {
+  outline: none;
+}
+
+.switch .input {
+  height: 0;
+  width: 0;
+  visibility: hidden;
+}
+
+.switch .slider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #ffffff;
+  border-radius: 100px;
+  transition: background 0.3s ease;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+.switch .slider:before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 28px;
+  height: 28px;
+  background: #b0b0b0;
+  border-radius: 50%;
+  transition: 0.3s;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+  z-index: 2;
+}
+
+.switch .input:checked ~ .slider {
+  background: #ffffff;
+}
+
+.switch .input:checked ~ .slider:before {
+  left: calc(100% - 3px);
+  transform: translateX(-100%);
+}
+
+.switch .slider:active:before {
+  width: 36px;
+}
+
+.switch .input:disabled ~ .slider {
   cursor: not-allowed;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  opacity: 0.6;
 }
 
-.cta-button.primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.32);
+.switch .rec-icon,
+.switch .camera-icon {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
 }
 
-.cta-button.secondary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.28);
+.switch .rec-icon {
+  left: 6px;
 }
+
+.switch .camera-icon {
+  right: 6px;
+}
+
+.switch .input:checked ~ .rec-icon {
+  opacity: 1;
+}
+
+.switch .input:checked ~ .camera-icon {
+  opacity: 0;
+}
+
+.switch .input:not(:checked) ~ .rec-icon {
+  opacity: 0;
+}
+
+.switch .input:not(:checked) ~ .camera-icon {
+  opacity: 1;
+}
+
+.switch .rec-icon img,
+.switch .camera-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* ============================================
+   BUTTONS - MANUAL SHAKE
+   ============================================ */
+
+.manual-shake {
+  margin-top: 0.5rem;
+  padding: 0.4rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: rgba(0, 0, 0, 0.35);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+.manual-shake.secondary {
+  background: rgba(255, 255, 255, 0.85);
+  color: #7a0c0c;
+  border-color: rgba(122, 12, 12, 0.4);
+}
+
+/* ============================================
+   SCREEN - HOME
+   ============================================ */
+
+.home-root {
+  background: none;
+  color: #fefefe;
+}
+
+.home-container {
+  width: 100%;
+  max-width: 420px;
+  background: transparent;
+  border-radius: 18px;
+  padding: 1.75rem 1.5rem;
+  box-shadow: none;
+  text-align: center;
+  backdrop-filter: none;
+}
+
+/* ============================================
+   SCREEN - SHAKE
+   ============================================ */
 
 .shake-container {
   max-width: 480px;
@@ -219,30 +513,16 @@ button:active {
   background: transparent;
 }
 
-.manual-shake {
-  margin-top: 0.5rem;
-  padding: 0.4rem 1rem;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  background: rgba(0, 0, 0, 0.35);
-  color: #fff;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
-}
-
-.manual-shake.secondary {
-  background: rgba(255, 255, 255, 0.85);
-  color: #7a0c0c;
-  border-color: rgba(122, 12, 12, 0.4);
-}
-
 .start-button,
 .note,
 .shake-message,
 .shake-container h1 {
   display: none;
 }
+
+/* ============================================
+   SCREEN - HORSE
+   ============================================ */
 
 .horse-root {
   background: none;
@@ -397,278 +677,46 @@ button:active {
   pointer-events: auto;
 }
 
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 60px;
-  height: 34px;
-  cursor: pointer;
-  outline: none;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.switch:focus {
-  outline: none;
-}
-
-.switch:active {
-  outline: none;
-}
-
-.switch .input {
-  height: 0;
-  width: 0;
-  visibility: hidden;
-}
-
-.switch .slider {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, #e0e0e0, #bdbdbd);
-  border-radius: 100px;
-  transition: background 0.3s ease;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
-}
-
-.switch .slider:before {
-  content: "";
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 28px;
-  height: 28px;
-  background: #424242;
-  border-radius: 50%;
-  transition: 0.3s;
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
-  z-index: 2;
-}
-
-.switch .input:checked ~ .slider {
-  background: linear-gradient(135deg, #c0c0c0, #9e9e9e);
-}
-
-.switch .input:checked ~ .slider:before {
-  left: calc(100% - 3px);
-  transform: translateX(-100%);
-}
-
-.switch .slider:active:before {
-  width: 36px;
-}
-
-.switch .input:disabled ~ .slider {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.switch .rec-icon,
-.switch .camera-icon {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 16px;
-  height: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
-}
-
-.switch .rec-icon {
-  left: 6px;
-}
-
-.switch .camera-icon {
-  right: 6px;
-}
-
-.switch .input:checked ~ .rec-icon {
-  opacity: 1;
-}
-
-.switch .input:checked ~ .camera-icon {
-  opacity: 0;
-}
-
-.switch .input:not(:checked) ~ .rec-icon {
-  opacity: 0;
-}
-
-.switch .input:not(:checked) ~ .camera-icon {
-  opacity: 1;
-}
-
-.switch .rec-icon img,
-.switch .camera-icon img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.capture-circle {
-  position: relative;
-  width: 80px;
-  height: 80px;
-  border: none;
-  padding: 0;
-  background: none;
-  cursor: pointer;
-}
-
-.capture-circle .ring {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 0.35em solid #ffffff; /* บางลง */
-  opacity: 1;
-  box-shadow: none;
-  transition: all 0.25s ease;
-}
-
-.capture-circle .core {
-  position: absolute;
-  top: 9%;
-  left: 9%;
-  right: 9%;
-  bottom: 9%;
-  border-radius: 50%;
-  background: #ffffff; /* โหมดถ่ายภาพเป็นสีขาว */
-  opacity: 1;
-  transition: all 0.25s ease;
-}
-
-.capture-circle.video .core {
-  background: #ff3b30; /* โหมดวิดีโอเป็นสีแดง */
-}
-
-.capture-circle.recording .ring {
-  border: none;
-  box-shadow: none;
-  background: none;
-}
-
-.capture-circle.recording .ring .progress-ring {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  transform: rotate(-90deg);
-}
-
-.capture-circle.recording .ring .progress-circle {
-  animation: draw-ring 30s linear forwards;
-}
-
-.capture-circle.recording .core {
-  border-radius: 8px;
-  top: 25%;
-  left: 25%;
-  right: 25%;
-  bottom: 25%;
-}
-
-.capture-circle:hover .core {
-  opacity: 1;
-}
-
-.capture-circle:active .ring {
-  opacity: 1;
-}
-
-.capture-circle:active .core {
-  opacity: 0.85;
-}
-
-.capture-circle:focus {
-  outline: none;
-}
-
-.capture-circle:active {
-  outline: none;
-}
-
-@keyframes draw-ring {
-  from {
-    stroke-dashoffset: 283;
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
-.back-icon {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  width: 48px;
-  height: 48px;
-  border-radius: 0;
-  border: none;
-  background: none;
-  color: #fff;
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-  box-shadow: none;
-  padding: 8px;
-  z-index: 100;
-  pointer-events: auto;
-  transition: opacity 0.2s ease;
-  outline: none;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.back-icon:focus {
-  outline: none;
-}
-
-.back-icon:active {
-  outline: none;
-  opacity: 0.6;
-}
-
-.back-icon:hover {
-  opacity: 0.7;
-}
-
-.back-icon svg {
-  width: 100%;
-  height: 100%;
-}
-
-.preview-modal {
+/* Processing overlay สำหรับแสดงสถานะการประมวลผลวิดีโอ */
+.processing-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
+  background: rgba(0, 0, 0, 0.75);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
-  z-index: 20;
+  z-index: 2000;
+  backdrop-filter: blur(4px);
 }
 
-.preview-card {
-  position: relative;
-  max-width: 360px;
-  width: 100%;
-  background: #0e0e0e;
-  border-radius: 16px;
-  padding: 0.75rem;
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+.processing-spinner {
+  width: 60px;
+  height: 60px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
 }
 
-.preview-card img,
-.preview-card video {
-  width: 100%;
-  border-radius: 12px;
-  display: block;
+.processing-text {
+  color: #ffffff;
+  font-size: 1.1rem;
+  font-weight: 500;
+  text-align: center;
+  margin: 0;
 }
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ============================================
+   SCREEN - FORTUNE
+   ============================================ */
 
 .fortune-root {
   background: none;
@@ -711,6 +759,10 @@ button:active {
   gap: 0.75rem;
   align-items: center;
 }
+
+/* ============================================
+   SCREEN - WALLPAPER
+   ============================================ */
 
 .wallpaper-root {
   background: none;
@@ -829,7 +881,59 @@ button:active {
   transform: rotate(180deg);
 }
 
-/* Modal Styles */
+.wall-action .image-button {
+  width: min(80vw, 320px);
+}
+
+/* ============================================
+   MODALS & OVERLAYS
+   ============================================ */
+
+.preview-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 20;
+}
+
+.preview-card {
+  position: relative;
+  max-width: 360px;
+  width: 100%;
+  background: #0e0e0e;
+  border-radius: 16px;
+  padding: 0.75rem;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+
+.preview-card img,
+.preview-card video {
+  width: 100%;
+  border-radius: 12px;
+  display: block;
+}
+
+.close-preview {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+}
+
+/* ============================================
+   MODALS - SELECT MODAL
+   ============================================ */
+
 .select-modal-overlay {
   position: fixed;
   inset: 0;
@@ -841,15 +945,6 @@ button:active {
   justify-content: center;
   padding: 1rem;
   animation: fadeIn 0.2s ease;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
 }
 
 .select-modal {
@@ -864,17 +959,6 @@ button:active {
   flex-direction: column;
   overflow: hidden;
   animation: slideUp 0.3s ease;
-}
-
-@keyframes slideUp {
-  from {
-    transform: translateY(20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
 }
 
 .select-modal-header {
@@ -991,22 +1075,42 @@ button:active {
   color: #7a0c0c;
 }
 
-.wall-action .image-button {
-  width: min(80vw, 320px);
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+
+@keyframes draw-ring {
+  from {
+    stroke-dashoffset: 283;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 
-.close-preview {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  border: none;
-  background: rgba(255, 255, 255, 0.15);
-  color: #fff;
-  border-radius: 50%;
-  width: 32px;
-  height: 32px;
-  cursor: pointer;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ============================================
+   UTILITIES - ERRORS
+   ============================================ */
 
 .error-text {
   display: block;
@@ -1023,6 +1127,10 @@ button:active {
   color: #b00020;
   font-weight: 600;
 }
+
+/* ============================================
+   MEDIA QUERIES
+   ============================================ */
 
 @media (max-width: 600px) {
   .shake-container {

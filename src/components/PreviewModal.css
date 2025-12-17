@@ -1,0 +1,220 @@
+.preview-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: auto;
+  z-index: 2000;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease-out, visibility 0.3s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 16px;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-sizing: border-box;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(4px);
+}
+
+@media (max-width: 600px) {
+  .preview-modal {
+    padding-top: clamp(8px, 3vh, 20px);
+    padding-bottom: clamp(8px, 3vh, 20px);
+  }
+}
+
+@media (min-width: 601px) and (max-width: 1024px) {
+  .preview-modal {
+    padding-top: clamp(16px, 5vh, 40px);
+    padding-bottom: clamp(12px, 5vh, 40px);
+  }
+}
+
+/* เมื่อพร้อมแสดงผล ให้ค่อยๆ Fade In เข้ามา */
+.preview-modal.visible {
+  opacity: 1;
+  visibility: visible;
+  justify-content: center;
+}
+
+/* Helper class */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.preview-content-frame {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  max-width: min(75vw, 550px);
+  aspect-ratio: 9 / 16;
+  height: auto;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 16px auto 0 auto;
+  background: none;
+  border-radius: 24px;
+  border: 2px solid white;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-sizing: border-box;
+}
+
+.preview-content {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* เปลี่ยนจาก contain เป็น cover เพื่อให้เต็มกรอบ */
+  display: block;
+  border-radius: 0; /* ลบ border-radius เพื่อให้ภาพเต็มกรอบ */
+}
+
+/* ✨ เพิ่มกรอบสีขาวให้ตัว content โดยตรง ✨ */
+.preview-content.with-border {
+  border-radius: 0; /* ลบ border-radius เพื่อให้ภาพเต็มกรอบ */
+  border: none;
+  box-shadow: none;
+  overflow: hidden; /* สำคัญมาก สำหรับ video/img */
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* เปลี่ยนจาก contain เป็น cover เพื่อให้เต็มกรอบ */
+}
+
+/* --- ✨ Layout ปุ่มแบบใหม่ ✨ --- */
+.preview-actions-container {
+  position: static;
+  width: 100%;
+  max-width: min(75vw, 550px);
+  margin: 18px auto 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  z-index: 3;
+  padding: 0;
+  box-sizing: border-box;
+  align-items: stretch;
+  justify-content: center;
+}
+
+.preview-actions-top-row {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  width: 100%;
+  margin: 0;
+  align-items: stretch;
+}
+
+.preview-actions-top-row > .preview-button {
+  width: auto;
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+.preview-button {
+  flex: 1 1 0%;
+  min-width: 0;
+  max-width: 100%;
+  width: auto;
+  font-size: 1.08rem;
+  padding: 10px 0;
+  border-radius: 20px;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  -webkit-tap-highlight-color: transparent;
+  background-color: #fff;
+  color: #333;
+  margin: 0;
+  outline: none;
+}
+
+.preview-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+.preview-button:active {
+  transform: translateY(0px) scale(0.98);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+  outline: none;
+}
+
+.preview-button:focus {
+  outline: none;
+}
+
+/* ปุ่มหลัก (สีขาว) */
+.preview-button.primary {
+  background-color: #fff;
+  color: #333;
+  border: 1px solid #e0e0e0;
+}
+
+/* ปุ่มรอง (โปร่งแสง) */
+.preview-button.secondary {
+  background-color: #fff;
+  color: #444;
+  border: 1px solid #e0e0e0;
+}
+
+/* ปุ่มที่กว้างเต็มพื้นที่ */
+.preview-button.full-width {
+  width: 100%;
+  margin-top: 12px;
+}
+
+/* ปรับ vertical alignment ให้ preview+ปุ่มอยู่กึ่งกลางแนวตั้งในจอสูง */
+@media (min-height: 700px) {
+  .preview-modal.visible {
+    justify-content: center;
+  }
+}
+
+/* การแสดงผลยืนยัน */
+.feedback-message {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 25px;
+  z-index: 3000;
+  animation: feedbackFadeIn 0.3s ease-out;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.feedback-message p {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+@keyframes feedbackFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}

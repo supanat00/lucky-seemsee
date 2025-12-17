@@ -1,17 +1,117 @@
-# React + Vite
+# Lucky Seemsee - แอปพลิเคชันเสี่ยงเซียมซีและถ่ายภาพมงคล
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+แอปพลิเคชัน React สำหรับเสี่ยงเซียมซีและถ่ายภาพมงคลพร้อม 3D Model
 
-Currently, two official plugins are available:
+## 📁 โครงสร้างโปรเจกต์
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```
+src/
+├── App.jsx                 # Main App Component - จัดการ routing และ state
+├── App.css                 # Global Styles - จัดระเบียบเป็นหมวดหมู่
+├── main.jsx                # Entry point
+├── index.css               # Base styles
+│
+├── components/             # React Components
+│   ├── CameraStage.jsx     # Camera wrapper component
+│   ├── HomeScreen.jsx      # หน้าหลัก
+│   ├── ShakeScreen.jsx     # หน้าเขย่าเซียมซี
+│   ├── FortuneScreen.jsx   # หน้าแสดงผลเซียมซี
+│   ├── HorseScreen.jsx     # หน้าถ่ายภาพมงคล (3D Model)
+│   ├── WallpaperScreen.jsx # หน้าสร้างวอลเปเปอร์
+│   └── GLBModel.jsx        # 3D Model component
+│
+└── assets/                 # Static Assets
+    ├── buttons/            # ปุ่มต่างๆ
+    ├── head_text/          # หัวข้อ
+    ├── horse_fire/         # ภาพมงคล (wish images)
+    ├── images/             # ภาพทั่วไป
+    ├── models/             # 3D Models (.glb)
+    ├── stick/              # ภาพเซียมซี (sequence)
+    ├── svg/                # SVG icons
+    └── text/               # ข้อความเซียมซี
+```
 
-## React Compiler
+## 🎨 CSS Structure
 
-The React Compiler is currently not compatible with SWC. See [this issue](https://github.com/vitejs/vite-plugin-react/issues/428) for tracking the progress.
+CSS ถูกจัดระเบียบเป็นหมวดหมู่ชัดเจนใน `App.css`:
 
-## Expanding the ESLint configuration
+1. **Reset & Base Styles** - Reset และ base styles
+2. **Layout - Camera Stage** - Layout สำหรับ camera stage
+3. **Buttons** - ปุ่มต่างๆ (CTA, Image, Back Icon, Capture Circle, Mode Switch, Manual Shake)
+4. **Screens** - Styles สำหรับแต่ละหน้า (Home, Shake, Horse, Fortune, Wallpaper)
+5. **Modals & Overlays** - Modal และ overlay components
+6. **Animations** - Keyframe animations
+7. **Utilities** - Utility classes (Errors, etc.)
+8. **Media Queries** - Responsive styles
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
-"# lucky-seemsee" 
+## 🚀 Features
+
+- **เสี่ยงเซียมซี**: เขย่าเครื่องเพื่อเสี่ยงเซียมซี
+- **ถ่ายภาพมงคล**: ถ่ายภาพ/วิดีโอกับ 3D Model
+- **สร้างวอลเปเปอร์**: เลือกเสริมดวงและปีนักษัตร
+- **Camera Integration**: ใช้กล้องหน้าของอุปกรณ์
+- **3D Model**: แสดง 3D Model ด้วย React Three Fiber
+
+## 🛠️ Technologies
+
+- React 18
+- Vite
+- React Three Fiber (@react-three/fiber)
+- @react-three/drei
+- MediaRecorder API
+- DeviceMotion API
+
+## 📝 State Management
+
+State หลักอยู่ใน `App.jsx`:
+- `view`: หน้าปัจจุบัน ('home' | 'shake' | 'horse' | 'fortune' | 'wallpaper')
+- `captureMode`: โหมดถ่ายภาพ ('photo' | 'video')
+- `isRecording`: สถานะการบันทึกวิดีโอ
+- `shakeTrigger`: Trigger สำหรับเขย่าเซียมซี
+- `fortuneIndex`: Index ของเซียมซีที่ได้
+- `selectedTopic`, `selectedZodiac`: ตัวเลือกสำหรับวอลเปเปอร์
+
+## 🎯 Component Responsibilities
+
+- **App.jsx**: จัดการ routing, state, และ camera logic
+- **CameraStage**: Wrapper สำหรับ camera feed
+- **HomeScreen**: หน้าหลักพร้อมเมนู
+- **ShakeScreen**: หน้าเขย่าเซียมซีพร้อม animation sequence
+- **FortuneScreen**: แสดงผลเซียมซีที่ได้
+- **HorseScreen**: หน้าถ่ายภาพ/วิดีโอกับ 3D Model
+- **WallpaperScreen**: หน้าสร้างวอลเปเปอร์พร้อม modal selection
+- **GLBModel**: Component สำหรับแสดง 3D Model
+
+## 🔧 Development
+
+```bash
+# Install dependencies
+npm install
+
+# Start dev server
+npm run dev
+
+# Build for production
+npm run build
+```
+
+## 📱 Mobile Considerations
+
+- ใช้ `env(safe-area-inset-bottom)` สำหรับ safe area บน iOS
+- ปิด tap highlight (`-webkit-tap-highlight-color: transparent`)
+- ปิด outline เมื่อ focus/active
+- Responsive design สำหรับหน้าจอขนาดต่างๆ
+
+## 🎨 Styling Guidelines
+
+- ใช้ CSS Variables สำหรับ colors (ถ้าต้องการในอนาคต)
+- จัดกลุ่ม styles ตาม component/feature
+- ใช้ comments เพื่อแยกหมวดหมู่
+- Mobile-first approach
+
+## 📚 Notes
+
+- 3D Models ใช้ GLB format
+- Camera ใช้ front-facing camera
+- Video recording จำกัด 30 วินาที
+- Shake detection ใช้ DeviceMotion API

@@ -2,6 +2,7 @@ import { Canvas } from '@react-three/fiber'
 import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useGLTF } from '@react-three/drei'
 import GLBModel from './GLBModel'
+import PreviewModal from './PreviewModal'
 import houseTestModel from '../assets/models/house_test.glb'
 import cameraIcon from '../assets/svg/camera-icon.svg'
 import recIcon from '../assets/svg/rec-icon.svg'
@@ -21,14 +22,19 @@ function HorseScreen({
   captureMode,
   setCaptureMode,
   isRecording,
+  isProcessing,
   handleCapture,
   preview,
-  closePreview,
   cameraError,
   modelSrc,
+  containerRef,
+  threeCanvasRef,
+  onSave,
+  onShare,
+  onRetry,
 }) {
   const toggleMode = () => {
-    if (isRecording) return
+    if (isRecording || isProcessing) return
     setCaptureMode(captureMode === 'photo' ? 'video' : 'photo')
   }
 
@@ -53,7 +59,7 @@ function HorseScreen({
   }, [modelSrc])
 
   return (
-    <div className="app-root horse-root">
+    <div className="app-root horse-root" ref={containerRef}>
       <button className="back-icon" type="button" onClick={onBack} aria-label="Back">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -75,6 +81,17 @@ function HorseScreen({
             key={canvasKey}
             camera={{ position: [0, 0, 5], fov: 50 }}
             style={{ width: '100%', height: '100%', background: 'transparent' }}
+            onCreated={(state) => {
+              // เก็บ WebGL renderer ไว้ใน ref เพื่อเข้าถึง canvas element
+              if (threeCanvasRef) {
+                threeCanvasRef.current = state.gl.domElement
+                console.log('✅ Three.js canvas stored in ref:', threeCanvasRef.current)
+                console.log('Canvas size:', state.gl.domElement.width, 'x', state.gl.domElement.height)
+              } else {
+                console.warn('threeCanvasRef is not provided')
+              }
+            }}
+            gl={{ preserveDrawingBuffer: true }}
           >
             <ambientLight intensity={1} />
             <directionalLight position={[5, 5, 5]} intensity={1.5} />
@@ -151,18 +168,19 @@ function HorseScreen({
           </button>
         </div>
 
-        {preview.type && (
-          <div className="preview-modal">
-            <div className="preview-card">
-              <button className="close-preview" onClick={closePreview} type="button">
-                ✕
-              </button>
-              {preview.type === 'photo' ? (
-                <img src={preview.url} alt="preview" />
-              ) : (
-                <video controls src={preview.url} autoPlay loop />
-              )}
-            </div>
+        {preview.type && preview.url && (
+          <PreviewModal
+            preview={preview}
+            onRetry={onRetry}
+            onSave={onSave}
+            onShare={onShare}
+          />
+        )}
+
+        {isProcessing && (
+          <div className="processing-overlay">
+            <div className="processing-spinner"></div>
+            <p className="processing-text">กำลังประมวลผลวิดีโอ...</p>
           </div>
         )}
 
