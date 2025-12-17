@@ -134,6 +134,8 @@ function App() {
       recordingTimeoutRef.current = null
     }
     setPreview({ type: null, url: null })
+    // รีเซ็ต shakeTrigger เมื่อออกจากหน้า shake
+    setShakeTrigger(0)
     setView('home')
   }
 
@@ -146,6 +148,9 @@ function App() {
     } catch (err) {
       console.error(err)
     }
+    // รีเซ็ต shakeTrigger และ lastShakeTimeRef เมื่อเข้าหน้า shake ใหม่
+    setShakeTrigger(0)
+    lastShakeTimeRef.current = 0
     setView('shake')
   }
 

@@ -98,7 +98,8 @@ function ShakeScreen({ onBack, onSequenceDone, shakeTrigger }) {
     }, [frames, onSequenceDone])
 
     useEffect(() => {
-        if (!shakeTrigger || frames.length === 0) return
+        // ไม่ทำงานถ้า shakeTrigger เป็น 0 หรือไม่มี frames
+        if (!shakeTrigger || shakeTrigger <= 0 || frames.length === 0) return
 
         let cleanupFn
         const rafId = requestAnimationFrame(() => {

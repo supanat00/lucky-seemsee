@@ -5,6 +5,20 @@ body {
   width: 100%;
   height: 100%;
   overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ลบ outline และ tap highlight สำหรับทุกปุ่ม */
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus {
+  outline: none;
+}
+
+button:active {
+  outline: none;
 }
 
 #root {
@@ -91,6 +105,18 @@ body {
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
   transition: transform 120ms ease, box-shadow 120ms ease, opacity 160ms ease;
   color: #fff;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cta-button:focus {
+  outline: none;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+}
+
+.cta-button:active {
+  outline: none;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
 }
 
 .image-button {
@@ -100,6 +126,17 @@ body {
   margin: 0;
   width: min(80vw, 360px);
   cursor: pointer;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.image-button:focus {
+  outline: none;
+}
+
+.image-button:active {
+  outline: none;
+  opacity: 0.9;
 }
 
 .image-button img {
@@ -366,6 +403,16 @@ body {
   width: 60px;
   height: 34px;
   cursor: pointer;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.switch:focus {
+  outline: none;
+}
+
+.switch:active {
+  outline: none;
 }
 
 .switch .input {
@@ -535,7 +582,15 @@ body {
 }
 
 .capture-circle:active .core {
-  opacity: 0.5;
+  opacity: 0.85;
+}
+
+.capture-circle:focus {
+  outline: none;
+}
+
+.capture-circle:active {
+  outline: none;
 }
 
 @keyframes draw-ring {
@@ -565,6 +620,17 @@ body {
   z-index: 100;
   pointer-events: auto;
   transition: opacity 0.2s ease;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.back-icon:focus {
+  outline: none;
+}
+
+.back-icon:active {
+  outline: none;
+  opacity: 0.6;
 }
 
 .back-icon:hover {
@@ -733,6 +799,15 @@ body {
   cursor: pointer;
   padding: 0;
   gap: 0.5rem;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.select-button:focus {
+  outline: none;
+}
+
+.select-button:active {
+  outline: none;
 }
 
 .select-button-text {
@@ -839,6 +914,11 @@ body {
 
 .select-modal-close:active {
   transform: scale(0.95);
+  outline: none;
+}
+
+.select-modal-close:focus {
+  outline: none;
 }
 
 .select-modal-content {
@@ -889,6 +969,11 @@ body {
 
 .select-modal-option:active {
   transform: scale(0.98);
+  outline: none;
+}
+
+.select-modal-option:focus {
+  outline: none;
 }
 
 .select-modal-option.selected {
