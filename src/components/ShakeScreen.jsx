@@ -8,6 +8,22 @@ function ShakeScreen({ onBack, onSequenceDone, shakeTrigger }) {
     const timeoutRef = useRef(null)
     const preloadRef = useRef([])
 
+    // รีเซ็ต state เมื่อ component mount ใหม่
+    useEffect(() => {
+        // Cleanup timers ที่อาจเหลืออยู่
+        if (timerRef.current) {
+            clearInterval(timerRef.current)
+            timerRef.current = null
+        }
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current)
+            timeoutRef.current = null
+        }
+        // รีเซ็ต state
+        setIsPlaying(false)
+        setFrameIndex(4)
+    }, [])
+
     // โหลดภาพทั้งหมดจากโฟลเดอร์ stick เป็น image-sequence
     const frames = useMemo(() => {
         const pngs = import.meta.glob('../assets/stick/stick*.png', { eager: true, import: 'default' })

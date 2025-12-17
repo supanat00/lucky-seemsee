@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { LoopOnce, LoopRepeat } from 'three'
 import { useAnimations, useGLTF } from '@react-three/drei'
 
@@ -9,10 +9,13 @@ function GLBModel({
   loopAnimation = 'loop',
   scale = 1,
   position = [0, 0, 0],
+  rotation = [0, 0, 0],
 }) {
   const group = useRef()
   const { scene, animations } = useGLTF(modelPath)
   const { actions, mixer } = useAnimations(animations, group)
+  const [isVisible, setIsVisible] = useState(false)
+  const hasStartedRef = useRef(false)
 
   // preload in case parent reuses modelPath
   useEffect(() => {
@@ -30,17 +33,27 @@ function GLBModel({
     const stopAll = () => {
       if (!actions) return
       Object.values(actions).forEach((a) => {
-        a.stop()
+        if (a) {
+          a.stop()
+        }
       })
     }
 
     // Reset all actions to prevent unwanted autoplay / blinking
     stopAll()
 
-    if (open && loop) {
+    if (open && loop && !hasStartedRef.current) {
+      hasStartedRef.current = true
+
+      // ตั้งค่าให้ animation เริ่มที่ frame แรก
       open.reset()
       open.setLoop(LoopOnce, 1)
-      open.fadeIn(0.05).play()
+
+      // ใช้ requestAnimationFrame เพื่อแสดงโมเดลและเล่น animation พร้อมกัน
+      requestAnimationFrame(() => {
+        setIsVisible(true)
+        open.fadeIn(0.05).play()
+      })
 
       const handler = (e) => {
         if (e.action !== open) return
@@ -54,16 +67,27 @@ function GLBModel({
       return () => {
         mixer?.removeEventListener('finished', handler)
         stopAll()
+        hasStartedRef.current = false
       }
     }
 
     if (fallback) {
-      fallback.reset()
-      fallback.setLoop(LoopRepeat, Infinity)
-      fallback.fadeIn(0.05).play()
+      requestAnimationFrame(() => {
+        setIsVisible(true)
+        fallback.reset()
+        fallback.setLoop(LoopRepeat, Infinity)
+        fallback.fadeIn(0.05).play()
+      })
       return () => {
         stopAll()
       }
+    }
+
+    // ถ้าไม่มี animation ให้แสดงทันที
+    if (!open && !loop && !fallback) {
+      requestAnimationFrame(() => {
+        setIsVisible(true)
+      })
     }
 
     return undefined
@@ -76,6 +100,8 @@ function GLBModel({
       dispose={null}
       scale={scale}
       position={position}
+      visible={isVisible}
+      rotation={rotation}
     />
   )
 }

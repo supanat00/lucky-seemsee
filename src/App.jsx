@@ -118,6 +118,22 @@ function App() {
   }, [videoRef])
 
   const goHome = () => {
+    // Stop recording if active
+    if (isRecording && mediaRecorderRef.current) {
+      try {
+        if (mediaRecorderRef.current.state !== 'inactive') {
+          mediaRecorderRef.current.stop()
+        }
+      } catch (err) {
+        console.error('Error stopping recorder:', err)
+      }
+    }
+    setIsRecording(false)
+    if (recordingTimeoutRef.current) {
+      clearTimeout(recordingTimeoutRef.current)
+      recordingTimeoutRef.current = null
+    }
+    setPreview({ type: null, url: null })
     setView('home')
   }
 
