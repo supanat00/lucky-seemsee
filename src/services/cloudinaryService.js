@@ -94,6 +94,7 @@ export async function uploadImageToCloudinary({
   dataUrl,
   folder = defaultFolder,
   publicId,
+  options = {},
 }) {
   const cfg = resolveCloudinaryConfig();
   const uploadUrl = cfg.uploadUrl;
@@ -109,6 +110,13 @@ export async function uploadImageToCloudinary({
   }
 
   try {
+    const shouldOverwrite = options?.overwrite === true;
+    const shouldInvalidate = options?.invalidate === true;
+    const shouldSetUniqueFilename =
+      typeof options?.uniqueFilename === "boolean"
+        ? options.uniqueFilename
+        : !shouldOverwrite;
+
     // Compute deterministic public_id once
     const cleanFolder = (folder || "").replace(/^\/+|\/+$/g, "");
     const cleanId = publicId ? String(publicId).replace(/^\/+|\/+$/g, "") : "";
@@ -136,18 +144,21 @@ export async function uploadImageToCloudinary({
 
       if (finalPublicId) formData.append("public_id", finalPublicId);
 
-      // Overwrite controls (signed mode)
-      formData.append("overwrite", "true");
-      formData.append("unique_filename", "false");
-      formData.append("invalidate", "true");
+      // Optional controls (signed mode)
+      if (shouldOverwrite) formData.append("overwrite", "true");
+      if (shouldInvalidate) formData.append("invalidate", "true");
+      formData.append(
+        "unique_filename",
+        shouldSetUniqueFilename ? "true" : "false"
+      );
 
       const paramsToSign = {
-        invalidate: "true",
-        overwrite: "true",
         public_id: finalPublicId,
         timestamp: String(timestamp),
-        unique_filename: "false",
+        unique_filename: shouldSetUniqueFilename ? "true" : "false",
       };
+      if (shouldOverwrite) paramsToSign.overwrite = "true";
+      if (shouldInvalidate) paramsToSign.invalidate = "true";
       const base = buildCloudinarySignatureString(paramsToSign);
       const signature = await sha1Hex(`${base}${cfg.apiSecret}`);
       formData.append("signature", signature);
@@ -168,10 +179,13 @@ export async function uploadImageToCloudinary({
         formData.append("folder", folder);
       }
 
-      // Prefer overwrite (may be rejected by preset; we retry without these fields below)
-      formData.append("overwrite", "true");
-      formData.append("unique_filename", "false");
-      formData.append("invalidate", "true");
+      // Optional controls (may be rejected by preset; we retry without these fields below)
+      if (shouldOverwrite) formData.append("overwrite", "true");
+      if (shouldInvalidate) formData.append("invalidate", "true");
+      formData.append(
+        "unique_filename",
+        shouldSetUniqueFilename ? "true" : "false"
+      );
     }
 
     const tryUpload = async (fd) => {

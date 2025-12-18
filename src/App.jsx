@@ -448,11 +448,45 @@ function App() {
 
       // 2) Upload to Cloudinary BEFORE showing preview (so preview can open link immediately)
       const userId = await getLineUserId()
-      const publicId = userId ? `lucky_seemsee_wallpaper_${userId}` : 'lucky_seemsee_wallpaper_default'
+
+      // IMPORTANT: Do NOT overwrite a stable public_id.
+      // If multiple devices use the same LINE account concurrently, overwrite causes them to "see" each other's latest image.
+      // Use a unique public_id per generation instead.
+      const getOrCreateAnonId = () => {
+        try {
+          const key = 'lucky-seemsee-anon-id'
+          let v = window.localStorage.getItem(key)
+          if (!v) {
+            const bytes = crypto.getRandomValues(new Uint8Array(8))
+            v = Array.from(bytes)
+              .map((b) => b.toString(16).padStart(2, '0'))
+              .join('')
+            window.localStorage.setItem(key, v)
+          }
+          return v
+        } catch {
+          return `anon_${Date.now()}`
+        }
+      }
+
+      const randHex = (nBytes = 4) => {
+        try {
+          const bytes = crypto.getRandomValues(new Uint8Array(nBytes))
+          return Array.from(bytes)
+            .map((b) => b.toString(16).padStart(2, '0'))
+            .join('')
+        } catch {
+          return String(Math.random()).slice(2)
+        }
+      }
+
+      const userKey = userId || getOrCreateAnonId()
+      const publicId = `wallpaper_${userKey}_${Date.now()}_${randHex(4)}`
       const up = await uploadImageToCloudinary({
         dataUrl: gen.base64,
         folder: 'lucky-seemsee',
         publicId,
+        options: { overwrite: false, uniqueFilename: false, invalidate: false },
       })
       if (!up.success || !up.url) {
         throw new Error(up.error || 'อัปโหลดไปยัง Cloudinary ไม่สำเร็จ')
