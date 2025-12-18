@@ -110,13 +110,29 @@ VITE_LIFF_ID=YOUR_LIFF_ID
 สำหรับ flow เฉพาะใน LINE LIFF (อัปโหลดรูปขึ้น Cloudinary แล้วเปิดลิงก์ด้วย external browser):
 
 ```bash
-VITE_CLOUDINARY_CLOUD_NAME=YOUR_CLOUD_NAME
+VITE_CLOUDINARY_URL=https://api.cloudinary.com/v1_1/YOUR_CLOUD_NAME/image/upload
+# optional (default: ml_default)
 VITE_CLOUDINARY_UPLOAD_PRESET=YOUR_UNSIGNED_UPLOAD_PRESET
-# optional
+# optional (default: lucky-seemsee)
 VITE_CLOUDINARY_FOLDER=lucky-seemsee
 ```
 
 หมายเหตุ: โปรเจกต์นี้ใช้ **unsigned upload preset** (ห้ามใส่ api secret ในฝั่ง client)
+
+## OpenAI Image Generation (Wallpaper)
+
+โปรเจกต์นี้เรียก **OpenAI Images API** จากฝั่ง client โดยตรงเพื่อสร้างวอลเปเปอร์ (เหมือนแนวทางใน `random-wallpaper`):
+
+```bash
+VITE_OPENAI_API_KEY=YOUR_OPENAI_API_KEY
+# optional
+VITE_IMAGE_MODEL=dall-e-3
+VITE_IMAGE_SIZE=1024x1792
+VITE_IMAGE_QUALITY=standard
+VITE_IMAGE_STYLE=natural
+```
+
+หมายเหตุด้านความปลอดภัย: การใส่ API key ใน client ไม่ปลอดภัยสำหรับ production — ใช้เฉพาะกรณีที่คุณยอมรับความเสี่ยง/หรือมีการจำกัด key แล้ว
 
 ## 📱 Mobile Considerations
 

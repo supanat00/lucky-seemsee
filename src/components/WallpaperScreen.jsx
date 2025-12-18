@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import { detectBrowserAndPlatform } from '../utils/deviceUtils'
-import { getLineUserId, isInLine, openLiffWindow } from '../services/liffService'
-import { uploadImageUrlToCloudinary } from '../services/cloudinaryService'
+import { isInLine, openLiffWindow } from '../services/liffService'
 import head02 from '../assets/images/head02.png'
 import chooseFrame from '../assets/images/choose.png'
 import button04 from '../assets/buttons/button04.png'
@@ -38,36 +37,11 @@ function WallpaperScreen({
 
   const bestImageUrl = useMemo(() => {
     if (!aiResult) return null
-    return aiResult.cloudUrl || aiResult.imageSrc || null
-  }, [aiResult])
-
-  const uploadAndOpenForLiff = async () => {
-    // LIFF-only: upload to cloud then open external link
-    if (!inLine) {
-      await openImageLink()
-      return
-    }
-
-    // Use stable public_id per user to overwrite
-    const userId = await getLineUserId()
-    const publicId = userId ? `lucky_seemsee_wallpaper_${userId}` : 'lucky_seemsee_wallpaper_default'
-
-    const imageUrl = (aiResult && aiResult.imageSrc) || bestImageUrl
-    if (!imageUrl) return
-
-    const result = await uploadImageUrlToCloudinary({
-      imageUrl,
-      folder: 'lucky-seemsee',
-      publicId,
-    })
-
-    if (result.success && result.url) {
-      await openLiffWindow(result.url, true)
-    } else {
-      // fallback: still try open something
-      await openImageLink()
-    }
-  }
+    // In LIFF we must prefer cloudUrl (external browser).
+    // In normal browsers we prefer local imageSrc (mock/real base64) to avoid broken/fake cloud links.
+    if (inLine) return aiResult.cloudUrl || aiResult.imageSrc || null
+    return aiResult.imageSrc || aiResult.cloudUrl || null
+  }, [aiResult, inLine])
 
   const openImageLink = async () => {
     const url = bestImageUrl
@@ -340,7 +314,7 @@ function WallpaperScreen({
               </div>
             ) : inLine ? (
               <div className="ai-wallpaper-actions ai-wallpaper-actions-top-row">
-                <button type="button" className="ai-wallpaper-btn secondary" onClick={uploadAndOpenForLiff} disabled={!bestImageUrl}>
+                <button type="button" className="ai-wallpaper-btn secondary" onClick={openImageLink} disabled={!bestImageUrl}>
                   บันทึก&แชร์
                 </button>
                 <button type="button" className="ai-wallpaper-btn" onClick={onPlayAgain}>
@@ -371,6 +345,7 @@ function WallpaperScreen({
                 </button>
               </div>
             )}
+
           </div>
         </div>
       )}

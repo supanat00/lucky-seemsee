@@ -3,8 +3,10 @@ import { Muxer, ArrayBufferTarget } from 'mp4-muxer'
 import { createCorrectBlob } from './utils/videoUtils'
 import { detectBrowserAndPlatform, isAndroid, isChrome, getVideoMimeTypes } from './utils/deviceUtils'
 import { buildAiWallpaperPrompt } from './utils/aiWallpaperPrompt'
+import { generateImageFromPrompt } from './services/openaiImageApi'
+import { getLineUserId, initLiff, isInLine } from './services/liffService'
+import { uploadImageToCloudinary } from './services/cloudinaryService'
 import { mockGenerateAndUploadAiWallpaper } from './services/aiWallpaperMock'
-import { initLiff } from './services/liffService'
 import './App.css'
 import CameraStage from './components/CameraStage'
 import HomeScreen from './components/HomeScreen'
@@ -416,17 +418,55 @@ function App() {
       zodiacLabel: zodiacOpt?.label || selectedZodiac,
     })
 
-    console.log('🧠 AI Wallpaper prompt (mock):', prompt)
+    console.log('🧠 AI Wallpaper prompt:', prompt)
 
     setAiWallpaperError('')
     setAiWallpaperResult(null)
     setAiWallpaperStatus('generating')
     try {
-      const result = await mockGenerateAndUploadAiWallpaper({ prompt })
-      setAiWallpaperResult(result)
+      // IMPORTANT: Save credits.
+      // - LINE LIFF: use REAL OpenAI + REAL Cloudinary upload.
+      // - Normal browsers (Android/Chrome, iOS/Safari, desktop): use MOCK images for now.
+      try {
+        await initLiff()
+      } catch {
+        // ignore
+      }
+
+      if (!isInLine()) {
+        const mock = await mockGenerateAndUploadAiWallpaper({ prompt })
+        setAiWallpaperResult(mock)
+        setAiWallpaperStatus('ready')
+        return
+      }
+
+      // 1) Generate image (REAL) - LIFF only
+      const gen = await generateImageFromPrompt(prompt)
+      if (!gen.success || !gen.base64) {
+        throw new Error(gen.error || 'เกิดข้อผิดพลาดในการสร้างภาพ')
+      }
+
+      // 2) Upload to Cloudinary BEFORE showing preview (so preview can open link immediately)
+      const userId = await getLineUserId()
+      const publicId = userId ? `lucky_seemsee_wallpaper_${userId}` : 'lucky_seemsee_wallpaper_default'
+      const up = await uploadImageToCloudinary({
+        dataUrl: gen.base64,
+        folder: 'lucky-seemsee',
+        publicId,
+      })
+      if (!up.success || !up.url) {
+        throw new Error(up.error || 'อัปโหลดไปยัง Cloudinary ไม่สำเร็จ')
+      }
+
+      setAiWallpaperResult({
+        imageSrc: gen.base64,
+        cloudUrl: up.url,
+        prompt,
+        revisedPrompt: gen.revisedPrompt || null,
+      })
       setAiWallpaperStatus('ready')
     } catch (e) {
-      console.error('AI wallpaper mock failed:', e)
+      console.error('AI wallpaper failed:', e)
       setAiWallpaperError(e?.message || 'เกิดข้อผิดพลาดในการสร้างภาพ')
       setAiWallpaperStatus('error')
     }
