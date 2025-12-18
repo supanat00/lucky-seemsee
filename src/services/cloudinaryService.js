@@ -110,7 +110,12 @@ export async function uploadImageToCloudinary({
       throw new Error(json?.error?.message || `Upload failed: ${res.status}`);
     }
 
-    return { success: true, url: json.secure_url, publicId: json.public_id };
+    return {
+      success: true,
+      url: json.secure_url,
+      publicId: json.public_id,
+      version: json.version,
+    };
   } catch (e) {
     return { success: false, error: e?.message || "Failed to upload image" };
   }

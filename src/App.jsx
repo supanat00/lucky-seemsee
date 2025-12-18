@@ -458,9 +458,15 @@ function App() {
         throw new Error(up.error || 'อัปโหลดไปยัง Cloudinary ไม่สำเร็จ')
       }
 
+      // Cache busting for external browser:
+      // Even if we overwrite the same public_id, external browsers/CDNs can serve a cached (old) image.
+      // Cloudinary returns a "version" on upload; use it (fallback to timestamp) to force a fresh URL.
+      const cacheKey = up.version || Date.now()
+      const cloudUrl = `${up.url}${up.url.includes('?') ? '&' : '?'}v=${encodeURIComponent(cacheKey)}`
+
       setAiWallpaperResult({
         imageSrc: gen.base64,
-        cloudUrl: up.url,
+        cloudUrl,
         prompt,
         revisedPrompt: gen.revisedPrompt || null,
       })
