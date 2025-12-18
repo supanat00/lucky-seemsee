@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { detectBrowserAndPlatform } from '../utils/deviceUtils'
 import { isInLine, openLiffWindow } from '../services/liffService'
+import { preloadImages } from '../utils/preloadImages'
+import { HORSE_LOADING_FRAMES } from '../utils/sequenceAssets'
 import head02 from '../assets/images/head02.png'
 import chooseFrame from '../assets/images/choose.png'
 import waitingImg from '../assets/images/waiting.png'
@@ -26,7 +28,16 @@ function WallpaperScreen({
   const [modalOpen, setModalOpen] = useState(null) // 'topic' | 'zodiac' | null
 
   const isBusy = isGenerating || !!aiResult
-  const [loadingFrameIdx, setLoadingFrameIdx] = useState(0)
+
+  // Preload loading sequence frames upfront to avoid decode jank during playback
+  const loadingFramesTotal = HORSE_LOADING_FRAMES.length
+  const [areLoadingFramesReady, setAreLoadingFramesReady] = useState(() => loadingFramesTotal === 0)
+  const [loadingFramesProgress, setLoadingFramesProgress] = useState(() => ({
+    loaded: 0,
+    total: loadingFramesTotal,
+  }))
+  const loadingSeqImgRef = useRef(null)
+  const loadingFramesSrcRef = useRef(HORSE_LOADING_FRAMES)
 
   const { isIOS, isSafari, isAndroid, isChrome } = useMemo(() => {
     try {
@@ -48,36 +59,75 @@ function WallpaperScreen({
     return aiResult.imageSrc || aiResult.cloudUrl || null
   }, [aiResult, inLine])
 
-  const loadingFrames = useMemo(() => {
-    const pngs = import.meta.glob('../assets/horse_loading/horse_*.png', { eager: true, import: 'default' })
-    const merged = { ...pngs }
-    return Object.keys(merged)
-      .sort()
-      .map((key) => merged[key])
+  // Preload+decode loading frames once (start immediately when entering screen)
+  useEffect(() => {
+    if (loadingFramesTotal === 0) return undefined
+
+    const controller = new AbortController()
+
+    preloadImages(HORSE_LOADING_FRAMES, {
+      concurrency: 3,
+      decode: true,
+      signal: controller.signal,
+      onProgress: ({ loaded, total }) => {
+        setLoadingFramesProgress({ loaded, total })
+      },
+    })
+      .then(() => {
+        loadingFramesSrcRef.current = HORSE_LOADING_FRAMES
+        setAreLoadingFramesReady(true)
+      })
+      .catch((e) => {
+        if (e?.name === 'AbortError') return
+        console.warn('preload loading frames failed (fallback to on-demand)', e)
+        setAreLoadingFramesReady(true)
+      })
+
+    return () => controller.abort()
+  }, [loadingFramesTotal])
+
+  const prefersReducedMotion = useMemo(() => {
+    try {
+      return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    } catch {
+      return false
+    }
   }, [])
 
-  // Animate loading sequence while generating
+  // Animate loading sequence while generating (without re-rendering the whole component per frame)
   useEffect(() => {
-    if (!isGenerating || loadingFrames.length === 0) return
+    if (!isGenerating) return undefined
 
-    let rafId = 0
-    let intervalId = 0
+    const frames = loadingFramesSrcRef.current || HORSE_LOADING_FRAMES
+    const el = loadingSeqImgRef.current
+    if (!el || frames.length === 0) return undefined
+
+    // Always show a valid frame immediately
+    el.src = frames[0]
+
+    // If not ready (or reduced motion), keep static to avoid flicker
+    if (!areLoadingFramesReady || prefersReducedMotion) return undefined
+
     const fps = 12
     const interval = 1000 / fps
 
-    rafId = requestAnimationFrame(() => {
-      // reset to start (async to satisfy lint rule)
-      setLoadingFrameIdx(0)
-      intervalId = window.setInterval(() => {
-        setLoadingFrameIdx((prev) => (prev + 1) % loadingFrames.length)
-      }, interval)
-    })
+    let rafId = 0
+    let frameIdx = 0
+    let lastTime = performance.now()
 
-    return () => {
-      cancelAnimationFrame(rafId)
-      if (intervalId) window.clearInterval(intervalId)
+    const tick = (now) => {
+      const elapsed = now - lastTime
+      if (elapsed >= interval) {
+        lastTime = now - (elapsed % interval)
+        frameIdx = (frameIdx + 1) % frames.length
+        el.src = frames[frameIdx] || frames[0]
+      }
+      rafId = requestAnimationFrame(tick)
     }
-  }, [isGenerating, loadingFrames.length])
+
+    rafId = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(rafId)
+  }, [areLoadingFramesReady, isGenerating, prefersReducedMotion])
 
   const openImageLink = async () => {
     const url = bestImageUrl
@@ -196,6 +246,8 @@ function WallpaperScreen({
 
   const options = modalOpen === 'topic' ? topicOptions : zodiacOptions
 
+  const canCreate = !!selectedTopic && !!selectedZodiac && !isBusy && areLoadingFramesReady
+
   return (
     <div className="app-root wallpaper-root">
       {/* Hide underlying UI while generating to avoid overlap */}
@@ -261,7 +313,7 @@ function WallpaperScreen({
                 className="image-button"
                 type="button"
                 onClick={onCreate}
-                disabled={!selectedTopic || !selectedZodiac || isBusy}
+                disabled={!canCreate}
               >
                 <img src={button04} alt="สร้างวอลเปเปอร์มงคล" />
               </button>
@@ -319,10 +371,11 @@ function WallpaperScreen({
       {isGenerating && (
         <div className="ai-wallpaper-overlay ai-wallpaper-overlay--loading" role="status" aria-live="polite">
           <div className="ai-loading-layout">
-            {loadingFrames.length > 0 && (
+            {HORSE_LOADING_FRAMES.length > 0 && (
               <img
                 className="ai-loading-seq"
-                src={loadingFrames[loadingFrameIdx] || loadingFrames[0]}
+                ref={loadingSeqImgRef}
+                src={HORSE_LOADING_FRAMES[0]}
                 alt=""
                 aria-hidden="true"
               />
@@ -343,6 +396,14 @@ function WallpaperScreen({
         </div>
       )}
 
+      {/* Preload toast (fixed; doesn't affect layout) */}
+      {!areLoadingFramesReady && loadingFramesProgress.total > 0 && (
+        <div className="asset-preload-toast" role="status" aria-live="polite">
+          {isGenerating ? 'กำลังเตรียมแอนิเมชัน…' : 'กำลังเตรียมไฟล์…'}{' '}
+          {Math.round((loadingFramesProgress.loaded / loadingFramesProgress.total) * 100)}%
+        </div>
+      )}
+
       {/* AI result UI (mock) */}
       {aiResult && (
         <div className="ai-wallpaper-overlay" role="dialog" aria-modal="true">
@@ -357,23 +418,23 @@ function WallpaperScreen({
             </div>
 
             <div className="ai-preview-actions-container">
-              {isAndroidChrome ? (
+              {inLine ? (
+                <div className="ai-preview-actions-row">
+                  {/* LIFF: use download icon instead of "download&share" */}
+                  <button type="button" className="image-button ai-icon-button" onClick={openImageLink} disabled={!bestImageUrl} aria-label="บันทึก">
+                    <img src={btnDownload} alt="บันทึก" />
+                  </button>
+                  <button type="button" className="image-button ai-icon-button" onClick={onPlayAgain} aria-label="เล่นอีกครั้ง">
+                    <img src={btnPlayAgain} alt="เล่นอีกครั้ง" />
+                  </button>
+                </div>
+              ) : isAndroidChrome ? (
                 <div className="ai-preview-actions-row">
                   <button type="button" className="image-button ai-icon-button" onClick={downloadImage} disabled={!bestImageUrl} aria-label="บันทึก">
                     <img src={btnDownload} alt="บันทึก" />
                   </button>
                   <button type="button" className="image-button ai-icon-button" onClick={shareImageFile} disabled={!bestImageUrl} aria-label="แชร์">
                     <img src={btnShare} alt="แชร์" />
-                  </button>
-                  <button type="button" className="image-button ai-icon-button" onClick={onPlayAgain} aria-label="เล่นอีกครั้ง">
-                    <img src={btnPlayAgain} alt="เล่นอีกครั้ง" />
-                  </button>
-                </div>
-              ) : inLine ? (
-                <div className="ai-preview-actions-row">
-                  {/* LIFF: use download icon instead of "download&share" */}
-                  <button type="button" className="image-button ai-icon-button" onClick={openImageLink} disabled={!bestImageUrl} aria-label="บันทึก">
-                    <img src={btnDownload} alt="บันทึก" />
                   </button>
                   <button type="button" className="image-button ai-icon-button" onClick={onPlayAgain} aria-label="เล่นอีกครั้ง">
                     <img src={btnPlayAgain} alt="เล่นอีกครั้ง" />

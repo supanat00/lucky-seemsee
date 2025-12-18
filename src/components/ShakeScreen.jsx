@@ -1,126 +1,110 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import step2 from '../assets/images/step2.png'
+import { preloadImages } from '../utils/preloadImages'
+import { RADIEN_STICK_FRAMES, STICK_FRAMES } from '../utils/sequenceAssets'
 
 function ShakeScreen({ onBack, onSequenceDone, shakeTrigger }) {
-    const [frameIndex, setFrameIndex] = useState(4) // เริ่มจาก stick0004
     const [isPlaying, setIsPlaying] = useState(false)
-    const timerRef = useRef(null)
-    const timeoutRef = useRef(null)
-    const preloadRef = useRef([])
-    const preloadRadienRef = useRef([])
+    const [areAssetsReady, setAreAssetsReady] = useState(false)
+    const [assetProgress, setAssetProgress] = useState({ loaded: 0, total: 0 })
 
-    // รีเซ็ต state เมื่อ component mount ใหม่
+    const stickImgRef = useRef(null)
+    const radienImgRef = useRef(null)
+    const rafRef = useRef(0)
+
+    // Preload+decode all frames upfront (avoid first-play stutter)
     useEffect(() => {
-        // Cleanup timers ที่อาจเหลืออยู่
-        if (timerRef.current) {
-            clearInterval(timerRef.current)
-            timerRef.current = null
-        }
-        if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current)
-            timeoutRef.current = null
-        }
-        // รีเซ็ต state
-        setIsPlaying(false)
-        setFrameIndex(4)
-    }, [])
+        const total = STICK_FRAMES.length + RADIEN_STICK_FRAMES.length
+        setAssetProgress({ loaded: 0, total })
+        setAreAssetsReady(false)
 
-    // โหลดภาพทั้งหมดจากโฟลเดอร์ stick เป็น image-sequence
-    const frames = useMemo(() => {
-        const pngs = import.meta.glob('../assets/stick/stick*.png', { eager: true, import: 'default' })
-        const webps = import.meta.glob('../assets/stick/stick*.webp', { eager: true, import: 'default' })
-        const merged = { ...pngs, ...webps }
-        return Object.keys(merged)
-            .sort()
-            .map((key) => merged[key])
-    }, [])
+        const controller = new AbortController()
 
-    // radien animation frames (behind stick)
-    const radienFrames = useMemo(() => {
-        const pngs = import.meta.glob('../assets/radien_stick_animation/radien_*.png', { eager: true, import: 'default' })
-        const webps = import.meta.glob('../assets/radien_stick_animation/radien_*.webp', { eager: true, import: 'default' })
-        const merged = { ...pngs, ...webps }
-        return Object.keys(merged)
-            .sort()
-            .map((key) => merged[key])
-    }, [])
-
-    // preload frames for smoother playback
-    useEffect(() => {
-        preloadRef.current = []
-        frames.forEach((src) => {
-            const img = new Image()
-            img.src = src
-            if (img.decode) img.decode().catch(() => { })
-            preloadRef.current.push(img)
+        preloadImages([...STICK_FRAMES, ...RADIEN_STICK_FRAMES], {
+            concurrency: 4,
+            decode: true,
+            signal: controller.signal,
+            onProgress: ({ loaded }) => setAssetProgress({ loaded, total }),
         })
-    }, [frames])
+            .then(() => {
+                setAreAssetsReady(true)
+                // Set initial static frame (stick0004) once assets are ready
+                if (stickImgRef.current && STICK_FRAMES[4]) stickImgRef.current.src = STICK_FRAMES[4]
+                if (radienImgRef.current && RADIEN_STICK_FRAMES[4]) radienImgRef.current.src = RADIEN_STICK_FRAMES[4]
+            })
+            .catch((e) => {
+                if (e?.name === 'AbortError') return
+                console.warn('preload shake sequence failed (fallback to on-demand)', e)
+                setAreAssetsReady(true)
+                if (stickImgRef.current && STICK_FRAMES[4]) stickImgRef.current.src = STICK_FRAMES[4]
+                if (radienImgRef.current && RADIEN_STICK_FRAMES[4]) radienImgRef.current.src = RADIEN_STICK_FRAMES[4]
+            })
 
-    useEffect(() => {
-        preloadRadienRef.current = []
-        radienFrames.forEach((src) => {
-            const img = new Image()
-            img.src = src
-            if (img.decode) img.decode().catch(() => { })
-            preloadRadienRef.current.push(img)
-        })
-    }, [radienFrames])
+        return () => {
+            controller.abort()
+        }
+    }, [])
 
     const startSequence = useCallback(() => {
-        if (timerRef.current) {
-            clearInterval(timerRef.current)
-            timerRef.current = null
-        }
-        if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current)
-            timeoutRef.current = null
-        }
+        if (!areAssetsReady) return undefined
+        if (STICK_FRAMES.length === 0) return undefined
 
-        if (frames.length === 0) return undefined
+        if (rafRef.current) {
+            cancelAnimationFrame(rafRef.current)
+            rafRef.current = 0
+        }
 
         setIsPlaying(true)
-        setFrameIndex(0)
 
-        const totalFrames = frames.length
+        const stickEl = stickImgRef.current
+        const radienEl = radienImgRef.current
+        if (!stickEl) return undefined
+
         const fps = 10 // ช้าลงเพื่อให้การเปลี่ยนภาพนุ่มนวลขึ้น
         const interval = 1000 / fps
         const duration = 3000 + Math.random() * 2000 // 3-5 วินาที
 
-        timerRef.current = setInterval(() => {
-            setFrameIndex((current) => {
-                const next = current + 1
-                if (next >= totalFrames) {
-                    return 0
-                }
-                return next
-            })
-        }, interval)
+        let idx = 0
+        let lastTime = performance.now()
+        const startTime = lastTime
 
-        timeoutRef.current = setTimeout(() => {
-            if (timerRef.current) {
-                clearInterval(timerRef.current)
-                timerRef.current = null
+        stickEl.src = STICK_FRAMES[0] || STICK_FRAMES[4]
+        if (radienEl) radienEl.src = RADIEN_STICK_FRAMES[0] || RADIEN_STICK_FRAMES[4]
+
+        const tick = (now) => {
+            if (now - startTime >= duration) {
+                rafRef.current = 0
+                setIsPlaying(false)
+                onSequenceDone?.()
+                return
             }
-            setIsPlaying(false)
-            onSequenceDone?.()
-        }, duration)
+
+            const elapsed = now - lastTime
+            if (elapsed >= interval) {
+                lastTime = now - (elapsed % interval)
+                idx = (idx + 1) % STICK_FRAMES.length
+                stickEl.src = STICK_FRAMES[idx] || STICK_FRAMES[0]
+                if (radienEl && RADIEN_STICK_FRAMES.length > 0) {
+                    radienEl.src = RADIEN_STICK_FRAMES[idx % RADIEN_STICK_FRAMES.length] || RADIEN_STICK_FRAMES[0]
+                }
+            }
+
+            rafRef.current = requestAnimationFrame(tick)
+        }
+
+        rafRef.current = requestAnimationFrame(tick)
 
         return () => {
-            if (timerRef.current) {
-                clearInterval(timerRef.current)
-                timerRef.current = null
-            }
-            if (timeoutRef.current) {
-                clearTimeout(timeoutRef.current)
-                timeoutRef.current = null
-            }
+            if (rafRef.current) cancelAnimationFrame(rafRef.current)
+            rafRef.current = 0
             setIsPlaying(false)
         }
-    }, [frames, onSequenceDone])
+    }, [areAssetsReady, onSequenceDone])
 
     useEffect(() => {
         // ไม่ทำงานถ้า shakeTrigger เป็น 0 หรือไม่มี frames
-        if (!shakeTrigger || shakeTrigger <= 0 || frames.length === 0) return
+        if (!areAssetsReady) return
+        if (!shakeTrigger || shakeTrigger <= 0 || STICK_FRAMES.length === 0) return
 
         let cleanupFn
         const rafId = requestAnimationFrame(() => {
@@ -133,24 +117,13 @@ function ShakeScreen({ onBack, onSequenceDone, shakeTrigger }) {
         }
     }, [shakeTrigger, frames.length, startSequence])
 
-    // cleanup timers on unmount
     useEffect(() => {
         return () => {
-            if (timerRef.current) {
-                clearInterval(timerRef.current)
-                timerRef.current = null
-            }
-            if (timeoutRef.current) {
-                clearTimeout(timeoutRef.current)
-                timeoutRef.current = null
-            }
+            if (rafRef.current) cancelAnimationFrame(rafRef.current)
+            rafRef.current = 0
             setIsPlaying(false)
         }
     }, [])
-
-    const currentFrame = frames[frameIndex] ?? null
-    const currentRadienFrame =
-        radienFrames.length > 0 ? (radienFrames[frameIndex % radienFrames.length] ?? null) : null
 
     return (
         <div className="app-root">
@@ -162,17 +135,19 @@ function ShakeScreen({ onBack, onSequenceDone, shakeTrigger }) {
             <div className="shake-container only-sequence">
                 <div className="stick-preview">
                     <img src={step2} alt="" aria-hidden="true" className="stick-bg" />
-                    {currentRadienFrame ? (
+                    {RADIEN_STICK_FRAMES.length > 0 ? (
                         <img
-                            src={currentRadienFrame}
+                            ref={radienImgRef}
+                            src={RADIEN_STICK_FRAMES[4] || RADIEN_STICK_FRAMES[0]}
                             alt=""
                             aria-hidden="true"
                             className={`radien-frame ${isPlaying ? 'playing' : ''}`}
                         />
                     ) : null}
-                    {currentFrame ? (
+                    {STICK_FRAMES.length > 0 ? (
                         <img
-                            src={currentFrame}
+                            ref={stickImgRef}
+                            src={STICK_FRAMES[4] || STICK_FRAMES[0]}
                             alt="เซียมซี"
                             className={`stick-frame ${isPlaying ? 'playing' : ''}`}
                         />
@@ -180,10 +155,16 @@ function ShakeScreen({ onBack, onSequenceDone, shakeTrigger }) {
                         <div className="stick-placeholder" />
                     )}
                 </div>
-                <button type="button" className="manual-shake" onClick={() => startSequence()}>
+                <button type="button" className="manual-shake" onClick={() => startSequence()} disabled={!areAssetsReady || isPlaying}>
                     เขย่า
                 </button>
             </div>
+
+            {!areAssetsReady && assetProgress.total > 0 && (
+                <div className="asset-preload-toast" role="status" aria-live="polite">
+                    กำลังเตรียมไฟล์… {Math.round((assetProgress.loaded / assetProgress.total) * 100)}%
+                </div>
+            )}
         </div>
     )
 }

@@ -15,6 +15,8 @@ import ShakeScreen from './components/ShakeScreen'
 import FortuneScreen from './components/FortuneScreen'
 import WallpaperScreen from './components/WallpaperScreen'
 import horseModel from './assets/models/house_test.glb'
+import { preloadImages } from './utils/preloadImages'
+import { HORSE_LOADING_FRAMES, RADIEN_STICK_FRAMES, STICK_FRAMES } from './utils/sequenceAssets'
 import wish01 from './assets/horse_fire/wish01.png'
 import wish02 from './assets/horse_fire/wish02.png'
 import wish03 from './assets/horse_fire/wish03.png'
@@ -203,6 +205,40 @@ function App() {
       const x = -0.60 * w // left:0 + translateX(-50%)
       const y = H * (1 - 0.12) - h
       ctx.drawImage(propLImg, Math.round(x), Math.round(y), Math.round(w), Math.round(h))
+    }
+  }, [])
+
+  /**
+   * Warm up (preload+decode) image-sequences in background as soon as the app loads.
+   * This avoids stutter later when sequences start playing on low-end mobile devices.
+   */
+  useEffect(() => {
+    const controller = new AbortController()
+    const sources = [...STICK_FRAMES, ...RADIEN_STICK_FRAMES, ...HORSE_LOADING_FRAMES]
+
+    const start = () => {
+      preloadImages(sources, {
+        concurrency: 3,
+        decode: true,
+        signal: controller.signal,
+      }).catch((e) => {
+        if (e?.name === 'AbortError') return
+        console.warn('warmup preload failed (non-fatal)', e)
+      })
+    }
+
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      const id = window.requestIdleCallback(start, { timeout: 1500 })
+      return () => {
+        controller.abort()
+        window.cancelIdleCallback(id)
+      }
+    }
+
+    const t = window.setTimeout(start, 400)
+    return () => {
+      controller.abort()
+      window.clearTimeout(t)
     }
   }, [])
 
