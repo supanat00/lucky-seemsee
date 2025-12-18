@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import html2canvas from 'html2canvas'
 import { Muxer, ArrayBufferTarget } from 'mp4-muxer'
-import { getSupportedMimeType, createCorrectBlob, convertVideoForDownload } from './utils/videoUtils'
+import { createCorrectBlob } from './utils/videoUtils'
 import { detectBrowserAndPlatform, isAndroid, isChrome, getVideoMimeTypes } from './utils/deviceUtils'
+import { buildAiWallpaperPrompt } from './utils/aiWallpaperPrompt'
+import { mockGenerateAndUploadAiWallpaper } from './services/aiWallpaperMock'
+import { initLiff } from './services/liffService'
 import './App.css'
 import CameraStage from './components/CameraStage'
 import HomeScreen from './components/HomeScreen'
@@ -11,6 +13,13 @@ import ShakeScreen from './components/ShakeScreen'
 import FortuneScreen from './components/FortuneScreen'
 import WallpaperScreen from './components/WallpaperScreen'
 import horseModel from './assets/models/house_test.glb'
+import wish01 from './assets/horse_fire/wish01.png'
+import wish02 from './assets/horse_fire/wish02.png'
+import wish03 from './assets/horse_fire/wish03.png'
+import wish04 from './assets/horse_fire/wish04.png'
+import wish05 from './assets/horse_fire/wish05.png'
+import wishPropRImg from './assets/horse_fire/wish_prop_r.png'
+import wishPropLImg from './assets/horse_fire/wish_prop_l.png'
 import head1 from './assets/head_text/head_text01.png'
 import head2 from './assets/head_text/head_text02.png'
 import head3 from './assets/head_text/head_text03.png'
@@ -21,6 +30,30 @@ import text2 from './assets/text/text02.png'
 import text3 from './assets/text/text03.png'
 import text4 from './assets/text/text04.png'
 import text5 from './assets/text/text05.png'
+
+const HORSE_WISH_IMAGES = [wish01, wish02, wish03, wish04, wish05]
+
+const WALLPAPER_TOPIC_OPTIONS = [
+  { value: 'health', label: 'สุขภาพ' },
+  { value: 'love', label: 'ความรัก' },
+  { value: 'career', label: 'การงาน' },
+  { value: 'money', label: 'การเงิน' },
+]
+
+const WALLPAPER_ZODIAC_OPTIONS = [
+  { value: 'rat', label: 'ชวด' },
+  { value: 'ox', label: 'ฉลู' },
+  { value: 'tiger', label: 'ขาล' },
+  { value: 'rabbit', label: 'เถาะ' },
+  { value: 'dragon', label: 'มะโรง' },
+  { value: 'snake', label: 'มะเส็ง' },
+  { value: 'horse', label: 'มะเมีย' },
+  { value: 'goat', label: 'มะแม' },
+  { value: 'monkey', label: 'วอก' },
+  { value: 'rooster', label: 'ระกา' },
+  { value: 'dog', label: 'จอ' },
+  { value: 'pig', label: 'กุน' },
+]
 
 /**
  * Main App Component
@@ -49,6 +82,9 @@ function App() {
   /** Preview ของภาพ/วิดีโอที่ถ่าย: { type: 'photo' | 'video' | null, url: string | null } */
   const [preview, setPreview] = useState({ type: null, url: null })
 
+  /** Wish image ที่ใช้ในหน้า horse (ต้อง deterministic เพื่อให้ output เหมือนกันทุกเครื่อง) */
+  const [selectedWishSrc, setSelectedWishSrc] = useState(HORSE_WISH_IMAGES[0])
+
   /** Trigger สำหรับเขย่าเซียมซี (increment เมื่อเขย่า) */
   const [shakeTrigger, setShakeTrigger] = useState(0)
 
@@ -60,6 +96,11 @@ function App() {
 
   /** ตัวเลือกปีนักษัตรสำหรับวอลเปเปอร์ */
   const [selectedZodiac, setSelectedZodiac] = useState('')
+
+  /** AI wallpaper mock state */
+  const [aiWallpaperStatus, setAiWallpaperStatus] = useState('idle') // 'idle' | 'generating' | 'ready' | 'error'
+  const [aiWallpaperResult, setAiWallpaperResult] = useState(null)
+  const [aiWallpaperError, setAiWallpaperError] = useState('')
 
   // ============================================
   // REFS
@@ -104,6 +145,64 @@ function App() {
   const audioSourceNodeRef = useRef(null)
   const audioProcessorNodeRef = useRef(null)
   const audioStreamRef = useRef(null)
+
+  /** Cache รูป overlay เพื่อไม่ต้องโหลดซ้ำ */
+  const overlayImageCacheRef = useRef(new Map())
+
+  const loadOverlayImage = useCallback((src) => {
+    if (!src) return Promise.resolve(null)
+
+    const cached = overlayImageCacheRef.current.get(src)
+    if (cached) return cached
+
+    const promise = new Promise((resolve, reject) => {
+      const img = new Image()
+      img.onload = () => resolve(img)
+      img.onerror = () => reject(new Error(`Failed to load overlay image: ${src}`))
+      img.src = src
+    })
+
+    overlayImageCacheRef.current.set(src, promise)
+    return promise
+  }, [])
+
+  const drawHorseOverlayFixed = useCallback((ctx, W, H, wishImg, propRImg, propLImg) => {
+    if (!ctx) return
+
+    // === Wish image (match existing design but deterministic in 720x1280 space) ===
+    if (wishImg?.naturalWidth && wishImg?.naturalHeight) {
+      const wishW = W * 1.3
+      const wishX = W * 0.5 - wishW * 0.42
+      // ขยับขึ้นด้านบนอีกเล็กน้อยให้ตรงกับหน้าจอ preview (match CSS padding-top: 40px)
+      const wishY = 40
+      const wishH = wishW * (wishImg.naturalHeight / wishImg.naturalWidth)
+      ctx.drawImage(
+        wishImg,
+        Math.round(wishX),
+        Math.round(wishY),
+        Math.round(wishW),
+        Math.round(wishH)
+      )
+    }
+
+    // === Props (match CSS: bottom 12%, widths 38%/40% + translateX) ===
+    if (propRImg?.naturalWidth && propRImg?.naturalHeight) {
+      const w = W * 0.38
+      const h = w * (propRImg.naturalHeight / propRImg.naturalWidth)
+      const x = W - 0.7 * w // right:0 + translateX(30%) => W - w + 0.3w = W - 0.7w
+      // ขยับ prop ขวาลงอีกเล็กน้อยให้ตรงตามต้องการ (match CSS bottom: 8%)
+      const y = H * (1 + 0.015) - h
+      ctx.drawImage(propRImg, Math.round(x), Math.round(y), Math.round(w), Math.round(h))
+    }
+
+    if (propLImg?.naturalWidth && propLImg?.naturalHeight) {
+      const w = W * 0.4
+      const h = w * (propLImg.naturalHeight / propLImg.naturalWidth)
+      const x = -0.60 * w // left:0 + translateX(-50%)
+      const y = H * (1 - 0.12) - h
+      ctx.drawImage(propLImg, Math.round(x), Math.round(y), Math.round(w), Math.round(h))
+    }
+  }, [])
 
   // ============================================
   // EVENT HANDLERS
@@ -200,6 +299,11 @@ function App() {
     }
   }, [])
 
+  // Init LIFF once (safe no-op in normal browsers when VITE_LIFF_ID not set)
+  useEffect(() => {
+    initLiff().catch(() => null)
+  }, [])
+
   /**
    * อัปเดต srcObject เมื่อ videoRef เปลี่ยน
    */
@@ -234,6 +338,12 @@ function App() {
       recordingTimeoutRef.current = null
     }
     setPreview({ type: null, url: null })
+    // reset wallpaper selections so user can "play again" without confusion
+    setSelectedTopic('')
+    setSelectedZodiac('')
+    setAiWallpaperStatus('idle')
+    setAiWallpaperResult(null)
+    setAiWallpaperError('')
     setShakeTrigger(0)
     setView('home')
   }
@@ -264,6 +374,9 @@ function App() {
     setPreview({ type: null, url: null })
     setIsRecording(false)
     setCaptureMode('photo')
+    // เลือก wish ให้คงที่สำหรับ session นี้ (photo+video ใช้รูปเดียวกัน)
+    const randomWish = HORSE_WISH_IMAGES[Math.floor(Math.random() * HORSE_WISH_IMAGES.length)]
+    setSelectedWishSrc(randomWish)
     setView('horse')
   }
 
@@ -281,7 +394,47 @@ function App() {
    * ไปหน้าสร้างวอลเปเปอร์
    */
   const goToWallpaper = () => {
+    // reset to blank defaults every time user enters this step
+    setSelectedTopic('')
+    setSelectedZodiac('')
+    setAiWallpaperStatus('idle')
+    setAiWallpaperResult(null)
+    setAiWallpaperError('')
     setView('wallpaper')
+  }
+
+  const handleCreateAiWallpaper = useCallback(async () => {
+    if (!selectedTopic || !selectedZodiac) return
+    if (aiWallpaperStatus === 'generating') return
+
+    const topicOpt = WALLPAPER_TOPIC_OPTIONS.find((o) => o.value === selectedTopic)
+    const zodiacOpt = WALLPAPER_ZODIAC_OPTIONS.find((o) => o.value === selectedZodiac)
+    const prompt = buildAiWallpaperPrompt({
+      topicValue: selectedTopic,
+      topicLabel: topicOpt?.label || selectedTopic,
+      zodiacValue: selectedZodiac,
+      zodiacLabel: zodiacOpt?.label || selectedZodiac,
+    })
+
+    console.log('🧠 AI Wallpaper prompt (mock):', prompt)
+
+    setAiWallpaperError('')
+    setAiWallpaperResult(null)
+    setAiWallpaperStatus('generating')
+    try {
+      const result = await mockGenerateAndUploadAiWallpaper({ prompt })
+      setAiWallpaperResult(result)
+      setAiWallpaperStatus('ready')
+    } catch (e) {
+      console.error('AI wallpaper mock failed:', e)
+      setAiWallpaperError(e?.message || 'เกิดข้อผิดพลาดในการสร้างภาพ')
+      setAiWallpaperStatus('error')
+    }
+  }, [aiWallpaperStatus, selectedTopic, selectedZodiac])
+
+  const handleAiWallpaperPlayAgain = () => {
+    // กลับไปหน้าแรกตามที่ต้องการ
+    goHome()
   }
 
   // ============================================
@@ -336,79 +489,13 @@ function App() {
       ctx.drawImage(videoEl, bgX, bgY, bgWidth, bgHeight)
       ctx.restore()
 
-      // 2. Capture และวาด decorative elements โดยคำนวณตำแหน่งใหม่จากตำแหน่งจริงบนหน้าจอ
-      const threeCanvas = threeCanvasRef.current
-      const windowWidth = window.innerWidth
-      const windowHeight = window.innerHeight
-
-      // คำนวณ scale จาก window size ไปยัง output canvas (720x1280)
-      // ใช้ความสูงเป็นหลักเพราะ output เป็น portrait 9:16
-      const scaleY = OUTPUT_HEIGHT / windowHeight
-      const scaleX = scaleY // ใช้ scale เดียวกันเพื่อไม่ให้เพี้ยน
-
-      // Capture และวาด wish-image
-      const wishImageContainer = container.querySelector('.wish-image-container')
-      if (wishImageContainer) {
-        const wishImageEl = wishImageContainer.querySelector('.wish-image')
-        if (wishImageEl) {
-          const wishRect = wishImageEl.getBoundingClientRect()
-          const wishCanvas = await html2canvas(wishImageEl, {
-            backgroundColor: null,
-            useCORS: true,
-            allowTaint: true,
-            scale: 1,
-            logging: false,
-          })
-
-          // คำนวณตำแหน่งใหม่บน output canvas
-          const wishX = (wishRect.left - 0) * scaleX
-          const wishY = (wishRect.top - 0) * scaleY
-          const wishWidth = wishCanvas.width * scaleX
-          const wishHeight = wishCanvas.height * scaleY
-
-          ctx.drawImage(wishCanvas, wishX, wishY, wishWidth, wishHeight)
-        }
-      }
-
-      // Capture และวาด wish-prop-r
-      const wishPropR = container.querySelector('.wish-prop-r')
-      if (wishPropR) {
-        const propRCanvas = await html2canvas(wishPropR, {
-          backgroundColor: null,
-          useCORS: true,
-          allowTaint: true,
-          scale: 1,
-          logging: false,
-        })
-
-        const propRRect = wishPropR.getBoundingClientRect()
-        const propRX = (propRRect.left - 0) * scaleX
-        const propRY = (propRRect.top - 0) * scaleY
-        const propRWidth = propRCanvas.width * scaleX
-        const propRHeight = propRCanvas.height * scaleY
-
-        ctx.drawImage(propRCanvas, propRX, propRY, propRWidth, propRHeight)
-      }
-
-      // Capture และวาด wish-prop-l
-      const wishPropL = container.querySelector('.wish-prop-l')
-      if (wishPropL) {
-        const propLCanvas = await html2canvas(wishPropL, {
-          backgroundColor: null,
-          useCORS: true,
-          allowTaint: true,
-          scale: 1,
-          logging: false,
-        })
-
-        const propLRect = wishPropL.getBoundingClientRect()
-        const propLX = (propLRect.left - 0) * scaleX
-        const propLY = (propLRect.top - 0) * scaleY
-        const propLWidth = propLCanvas.width * scaleX
-        const propLHeight = propLCanvas.height * scaleY
-
-        ctx.drawImage(propLCanvas, propLX, propLY, propLWidth, propLHeight)
-      }
+      // 2. วาด decorative elements แบบ deterministic ใน output 720x1280 (ไม่อิง DOM)
+      const [wishImg, propRImg, propLImg] = await Promise.all([
+        loadOverlayImage(selectedWishSrc),
+        loadOverlayImage(wishPropRImg),
+        loadOverlayImage(wishPropLImg),
+      ])
+      drawHorseOverlayFixed(ctx, OUTPUT_WIDTH, OUTPUT_HEIGHT, wishImg, propRImg, propLImg)
 
       // 3. วาด Three.js canvas (3D model) ทับ
       // ใช้ threeCanvasRef ที่เก็บ gl.domElement ไว้แล้ว
@@ -750,8 +837,6 @@ function App() {
     if (!streamRef.current || !horseContainerRef.current) return false
 
     try {
-      const videoEl = videoRef.current
-
       // สร้าง canvas สำหรับ composite - ตั้งเป็นแนวตั้ง 9:16
       const canvas = document.createElement('canvas')
       // ใช้ขนาด 720x1280 (9:16 portrait) เพื่อไม่ให้เกิน AVC level 3.1 limit
@@ -766,7 +851,7 @@ function App() {
       // ⚠️ ต้อง await ให้เสร็จก่อนเริ่ม compositeFrame() เพื่อป้องกัน race condition
       let overlayCanvasCache = null
       try {
-        // สร้าง canvas สำหรับ overlay (เฉพาะ decorative elements + 3D model, ไม่รวม video)
+        // สร้าง canvas สำหรับ overlay (เฉพาะ decorative elements, ไม่รวม video และไม่รวม 3D model)
         const overlayCanvas = document.createElement('canvas')
         const OUTPUT_WIDTH = 720
         const OUTPUT_HEIGHT = 1280
@@ -774,80 +859,13 @@ function App() {
         overlayCanvas.height = OUTPUT_HEIGHT
         const overlayCtx = overlayCanvas.getContext('2d')
 
-        const container = horseContainerRef.current
-
-        // Capture และวาด decorative elements โดยคำนวณตำแหน่งใหม่จากตำแหน่งจริงบนหน้าจอ
-        const windowWidth = window.innerWidth
-        const windowHeight = window.innerHeight
-
-        // คำนวณ scale จาก window size ไปยัง output canvas (720x1280)
-        // ใช้ความสูงเป็นหลักเพราะ output เป็น portrait 9:16
-        const scaleY = OUTPUT_HEIGHT / windowHeight
-        const scaleX = scaleY // ใช้ scale เดียวกันเพื่อไม่ให้เพี้ยน
-
-        // Capture และวาด wish-image
-        const wishImageContainer = container.querySelector('.wish-image-container')
-        if (wishImageContainer) {
-          const wishImageEl = wishImageContainer.querySelector('.wish-image')
-          if (wishImageEl) {
-            const wishRect = wishImageEl.getBoundingClientRect()
-            const wishCanvas = await html2canvas(wishImageEl, {
-              backgroundColor: null,
-              useCORS: true,
-              allowTaint: true,
-              scale: 1,
-              logging: false,
-            })
-
-            // คำนวณตำแหน่งใหม่บน output canvas
-            const wishX = (wishRect.left - 0) * scaleX
-            const wishY = (wishRect.top - 0) * scaleY
-            const wishWidth = wishCanvas.width * scaleX
-            const wishHeight = wishCanvas.height * scaleY
-
-            overlayCtx.drawImage(wishCanvas, wishX, wishY, wishWidth, wishHeight)
-          }
-        }
-
-        // Capture และวาด wish-prop-r
-        const wishPropR = container.querySelector('.wish-prop-r')
-        if (wishPropR) {
-          const propRCanvas = await html2canvas(wishPropR, {
-            backgroundColor: null,
-            useCORS: true,
-            allowTaint: true,
-            scale: 1,
-            logging: false,
-          })
-
-          const propRRect = wishPropR.getBoundingClientRect()
-          const propRX = (propRRect.left - 0) * scaleX
-          const propRY = (propRRect.top - 0) * scaleY
-          const propRWidth = propRCanvas.width * scaleX
-          const propRHeight = propRCanvas.height * scaleY
-
-          overlayCtx.drawImage(propRCanvas, propRX, propRY, propRWidth, propRHeight)
-        }
-
-        // Capture และวาด wish-prop-l
-        const wishPropL = container.querySelector('.wish-prop-l')
-        if (wishPropL) {
-          const propLCanvas = await html2canvas(wishPropL, {
-            backgroundColor: null,
-            useCORS: true,
-            allowTaint: true,
-            scale: 1,
-            logging: false,
-          })
-
-          const propLRect = wishPropL.getBoundingClientRect()
-          const propLX = (propLRect.left - 0) * scaleX
-          const propLY = (propLRect.top - 0) * scaleY
-          const propLWidth = propLCanvas.width * scaleX
-          const propLHeight = propLCanvas.height * scaleY
-
-          overlayCtx.drawImage(propLCanvas, propLX, propLY, propLWidth, propLHeight)
-        }
+        // วาด decorative elements แบบ deterministic ใน output 720x1280 (ไม่อิง DOM)
+        const [wishImg, propRImg, propLImg] = await Promise.all([
+          loadOverlayImage(selectedWishSrc),
+          loadOverlayImage(wishPropRImg),
+          loadOverlayImage(wishPropLImg),
+        ])
+        drawHorseOverlayFixed(overlayCtx, OUTPUT_WIDTH, OUTPUT_HEIGHT, wishImg, propRImg, propLImg)
 
         // 3. ไม่วาด Three.js canvas ที่นี่ เพราะต้องวาดใหม่ทุก frame เพื่อให้ animation ทำงาน
         // overlayCanvasCache จะเก็บเฉพาะ decorative elements เท่านั้น
@@ -1100,13 +1118,6 @@ function App() {
   /**
    * ปิด preview modal
    */
-  const closePreview = () => {
-    setPreview({ type: null, url: null })
-  }
-
-  /**
-   * บันทึกภาพ/วิดีโอ
-   */
   const handleSave = async () => {
     if (!preview.url) return
 
@@ -1201,6 +1212,7 @@ function App() {
           preview={preview}
           cameraError={cameraError}
           modelSrc={horseModel}
+          selectedWishSrc={selectedWishSrc}
           containerRef={horseContainerRef}
           threeCanvasRef={threeCanvasRef}
           onSave={handleSave}
@@ -1232,34 +1244,17 @@ function App() {
   }
 
   if (view === 'wallpaper') {
-    const topicOptions = [
-      { value: 'health', label: 'สุขภาพ' },
-      { value: 'love', label: 'ความรัก' },
-      { value: 'career', label: 'การงาน' },
-      { value: 'money', label: 'การเงิน' },
-    ]
-    const zodiacOptions = [
-      { value: 'rat', label: 'ชวด' },
-      { value: 'ox', label: 'ฉลู' },
-      { value: 'tiger', label: 'ขาล' },
-      { value: 'rabbit', label: 'เถาะ' },
-      { value: 'dragon', label: 'มะโรง' },
-      { value: 'snake', label: 'มะเส็ง' },
-      { value: 'horse', label: 'มะเมีย' },
-      { value: 'goat', label: 'มะแม' },
-      { value: 'monkey', label: 'วอก' },
-      { value: 'rooster', label: 'ระกา' },
-      { value: 'dog', label: 'จอ' },
-      { value: 'pig', label: 'กุน' },
-    ]
-
     return (
       <CameraStage videoRef={videoRef}>
         <WallpaperScreen
           onBack={goHome}
-          onCreate={goHome}
-          topicOptions={topicOptions}
-          zodiacOptions={zodiacOptions}
+          onCreate={handleCreateAiWallpaper}
+          onPlayAgain={handleAiWallpaperPlayAgain}
+          isGenerating={aiWallpaperStatus === 'generating'}
+          aiResult={aiWallpaperStatus === 'ready' ? aiWallpaperResult : null}
+          aiError={aiWallpaperStatus === 'error' ? aiWallpaperError : ''}
+          topicOptions={WALLPAPER_TOPIC_OPTIONS}
+          zodiacOptions={WALLPAPER_ZODIAC_OPTIONS}
           selectedTopic={selectedTopic}
           selectedZodiac={selectedZodiac}
           setSelectedTopic={setSelectedTopic}

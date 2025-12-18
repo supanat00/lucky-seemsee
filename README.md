@@ -95,6 +95,16 @@ npm run dev
 npm run build
 ```
 
+## LINE LIFF (Optional)
+
+ถ้าต้องการรันใน LINE LIFF ให้สร้างไฟล์ `.env` แล้วใส่:
+
+```bash
+VITE_LIFF_ID=YOUR_LIFF_ID
+```
+
+ถ้าไม่ตั้งค่า `VITE_LIFF_ID` แอปจะรันแบบ browser ปกติ (LIFF จะถูกข้ามไป)
+
 ## 📱 Mobile Considerations
 
 - ใช้ `env(safe-area-inset-bottom)` สำหรับ safe area บน iOS

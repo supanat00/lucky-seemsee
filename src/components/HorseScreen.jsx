@@ -27,6 +27,7 @@ function HorseScreen({
   preview,
   cameraError,
   modelSrc,
+  selectedWishSrc,
   containerRef,
   threeCanvasRef,
   onSave,
@@ -42,10 +43,30 @@ function HorseScreen({
 
   // Random wish image (1-5)
   const wishImages = [wish01, wish02, wish03, wish04, wish05]
-  const [selectedWish] = useState(() => {
+  const [fallbackWish] = useState(() => {
     const randomIndex = Math.floor(Math.random() * 5)
     return wishImages[randomIndex]
   })
+  const wishToRender = selectedWishSrc || fallbackWish
+
+  // Force a fixed 9:16 stage (720x1280 CSS px) scaled to viewport so capture framing is identical across devices
+  useEffect(() => {
+    const el = containerRef?.current
+    if (!el) return
+
+    const applyScale = () => {
+      const scale = Math.min(window.innerWidth / 720, window.innerHeight / 1280)
+      el.style.setProperty('--horse-stage-scale', String(scale))
+    }
+
+    applyScale()
+    window.addEventListener('resize', applyScale)
+    window.addEventListener('orientationchange', applyScale)
+    return () => {
+      window.removeEventListener('resize', applyScale)
+      window.removeEventListener('orientationchange', applyScale)
+    }
+  }, [containerRef])
 
   // Preload incoming modelSrc (if different) before render to reduce flicker
   useEffect(() => {
@@ -59,23 +80,24 @@ function HorseScreen({
   }, [modelSrc])
 
   return (
-    <div className="app-root horse-root" ref={containerRef}>
+    <div className="app-root horse-root">
       <button className="back-icon" type="button" onClick={onBack} aria-label="Back">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
 
-      {/* Wish image at top */}
-      <div className="wish-image-container">
-        <img src={selectedWish} alt="wish" className="wish-image" />
-      </div>
+      {/* Fixed 9:16 stage (deterministic layout + deterministic capture) */}
+      <div className="horse-stage" ref={containerRef} aria-hidden="true">
+        {/* Wish image at top */}
+        <div className="wish-image-container">
+          <img src={wishToRender} alt="wish" className="wish-image" />
+        </div>
 
-      {/* Decorative props */}
-      <img src={wishPropR} alt="" className="wish-prop wish-prop-r" />
-      <img src={wishPropL} alt="" className="wish-prop wish-prop-l" />
+        {/* Decorative props */}
+        <img src={wishPropR} alt="" className="wish-prop wish-prop-r" />
+        <img src={wishPropL} alt="" className="wish-prop wish-prop-l" />
 
-      <div className="horse-container minimal">
         <div className="model-frame minimal">
           <Canvas
             key={canvasKey}
@@ -85,8 +107,6 @@ function HorseScreen({
               // เก็บ WebGL renderer ไว้ใน ref เพื่อเข้าถึง canvas element
               if (threeCanvasRef) {
                 threeCanvasRef.current = state.gl.domElement
-                console.log('✅ Three.js canvas stored in ref:', threeCanvasRef.current)
-                console.log('Canvas size:', state.gl.domElement.width, 'x', state.gl.domElement.height)
               } else {
                 console.warn('threeCanvasRef is not provided')
               }
@@ -108,84 +128,84 @@ function HorseScreen({
 
           </Canvas>
         </div>
-
-        <div className="capture-panel minimal">
-          <label id="switch-button" className="switch" htmlFor="mode-switch">
-            <input
-              type="checkbox"
-              id="mode-switch"
-              className="input"
-              checked={captureMode === 'video'}
-              onChange={toggleMode}
-              disabled={isRecording}
-              aria-label="toggle photo/video"
-            />
-            {/* video mode icon */}
-            <span className="rec-icon">
-              <img src={recIcon} alt="video mode" />
-            </span>
-            {/* camera mode icon */}
-            <span className="camera-icon">
-              <img src={cameraIcon} alt="camera mode" />
-            </span>
-            <span className="slider"></span>
-          </label>
-
-          <button
-            type="button"
-            className={`capture-circle ${captureMode} ${isRecording ? 'recording' : ''}`}
-            onClick={handleCapture}
-            disabled={!!cameraError}
-            aria-label={captureMode === 'photo' ? 'ถ่ายภาพ' : isRecording ? 'หยุดบันทึก' : 'เริ่มบันทึก'}
-          >
-            <span className="ring">
-              {isRecording && (
-                <svg className="progress-ring" viewBox="0 0 100 100">
-                  <circle
-                    className="progress-circle-bg"
-                    cx="50"
-                    cy="50"
-                    r="45"
-                    fill="none"
-                    stroke="rgba(255, 255, 255, 0.3)"
-                    strokeWidth="3"
-                  />
-                  <circle
-                    className="progress-circle"
-                    cx="50"
-                    cy="50"
-                    r="45"
-                    fill="none"
-                    stroke="#ffffff"
-                    strokeWidth="3"
-                    strokeDasharray="283"
-                    strokeDashoffset="283"
-                  />
-                </svg>
-              )}
-            </span>
-            <span className="core" />
-          </button>
-        </div>
-
-        {preview.type && preview.url && (
-          <PreviewModal
-            preview={preview}
-            onRetry={onRetry}
-            onSave={onSave}
-            onShare={onShare}
-          />
-        )}
-
-        {isProcessing && (
-          <div className="processing-overlay">
-            <div className="processing-spinner"></div>
-            <p className="processing-text">กำลังประมวลผลวิดีโอ...</p>
-          </div>
-        )}
-
-        {cameraError && <div className="error-banner">{cameraError}</div>}
       </div>
+
+      <div className="capture-panel minimal">
+        <label id="switch-button" className="switch" htmlFor="mode-switch">
+          <input
+            type="checkbox"
+            id="mode-switch"
+            className="input"
+            checked={captureMode === 'video'}
+            onChange={toggleMode}
+            disabled={isRecording}
+            aria-label="toggle photo/video"
+          />
+          {/* video mode icon */}
+          <span className="rec-icon">
+            <img src={recIcon} alt="video mode" />
+          </span>
+          {/* camera mode icon */}
+          <span className="camera-icon">
+            <img src={cameraIcon} alt="camera mode" />
+          </span>
+          <span className="slider"></span>
+        </label>
+
+        <button
+          type="button"
+          className={`capture-circle ${captureMode} ${isRecording ? 'recording' : ''}`}
+          onClick={handleCapture}
+          disabled={!!cameraError}
+          aria-label={captureMode === 'photo' ? 'ถ่ายภาพ' : isRecording ? 'หยุดบันทึก' : 'เริ่มบันทึก'}
+        >
+          <span className="ring">
+            {isRecording && (
+              <svg className="progress-ring" viewBox="0 0 100 100">
+                <circle
+                  className="progress-circle-bg"
+                  cx="50"
+                  cy="50"
+                  r="45"
+                  fill="none"
+                  stroke="rgba(255, 255, 255, 0.3)"
+                  strokeWidth="3"
+                />
+                <circle
+                  className="progress-circle"
+                  cx="50"
+                  cy="50"
+                  r="45"
+                  fill="none"
+                  stroke="#ffffff"
+                  strokeWidth="3"
+                  strokeDasharray="283"
+                  strokeDashoffset="283"
+                />
+              </svg>
+            )}
+          </span>
+          <span className="core" />
+        </button>
+      </div>
+
+      {preview.type && preview.url && (
+        <PreviewModal
+          preview={preview}
+          onRetry={onRetry}
+          onSave={onSave}
+          onShare={onShare}
+        />
+      )}
+
+      {isProcessing && (
+        <div className="processing-overlay">
+          <div className="processing-spinner"></div>
+          <p className="processing-text">กำลังประมวลผลวิดีโอ...</p>
+        </div>
+      )}
+
+      {cameraError && <div className="error-banner">{cameraError}</div>}
     </div>
   )
 }
