@@ -239,7 +239,7 @@ button:active {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 0.35em solid #ffffff;
+  border: 0.35em solid #fbd97f;
   opacity: 1;
   box-shadow: none;
   transition: all 0.25s ease;
@@ -258,7 +258,7 @@ button:active {
 }
 
 .capture-circle.video .core {
-  background: #ff3b30; /* โหมดวิดีโอเป็นสีแดง */
+  background: #b22424; /* โหมดวิดีโอเป็นสีแดงเข้ม */
 }
 
 .capture-circle.recording .ring {
@@ -354,7 +354,7 @@ button:active {
   left: 3px;
   width: 28px;
   height: 28px;
-  background: #b0b0b0;
+  background: #fbd97f;
   border-radius: 50%;
   transition: 0.3s;
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
@@ -503,8 +503,21 @@ button:active {
   display: block;
   transition: transform 120ms ease;
   position: relative;
-  z-index: 1;
+  z-index: 2;
   transform: translateY(20px);
+}
+
+.radien-frame {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 70%;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  z-index: 1; /* behind stick, above bg */
+  transform: translate(-50%, -50%) translateY(20px);
+  pointer-events: none;
 }
 
 .stick-placeholder {
@@ -905,7 +918,12 @@ button:active {
 .ai-wallpaper-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.72);
+  /* bg_save.png as preview background (same visual language as photo/video preview) */
+  background-color: transparent;
+  background-image: url("./assets/bg_save.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
   display: flex;
@@ -916,6 +934,14 @@ button:active {
   z-index: 3000;
 }
 
+/* Loading state: show camera feed behind (no bg image, no blur) */
+.ai-wallpaper-overlay--loading {
+  background-image: none;
+  background-color: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
 .ai-wallpaper-card {
   width: min(86vw, 380px);
   background: rgba(255, 255, 255, 0.96);
@@ -923,6 +949,113 @@ button:active {
   padding: 18px 16px;
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
   text-align: center;
+}
+
+.ai-loading-layout {
+  /* Center both sequence + waiting group in the middle of the screen */
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.ai-loading-seq {
+  width: min(64vw, 260px);
+  height: auto;
+  display: block;
+  margin: 0;
+  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.ai-loading-waiting-wrap {
+  position: relative;
+  width: min(70vw, 320px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ai-loading-waiting {
+  width: 100%;
+  height: auto;
+  display: block;
+  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.ai-loading-waiting-text {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 0.2px;
+  text-align: center;
+  white-space: nowrap;
+  text-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+/* Match layout sizing of horse PreviewModal for wallpaper result preview */
+.ai-preview-stack {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.ai-preview-frame {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  max-width: min(75vw, 550px);
+  height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 16px auto 0 auto;
+  background: none;
+  border-radius: 24px;
+  border: 2px solid #fbd97f;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-sizing: border-box;
+}
+
+.ai-preview-content {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain; /* keep full wallpaper visible */
+}
+
+.ai-preview-placeholder {
+  width: 100%;
+  height: 100%;
+}
+
+.ai-preview-actions-container {
+  width: 100%;
+  max-width: min(75vw, 550px);
+  margin: 18px auto 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ai-preview-actions-row {
+  width: 100%;
+  display: flex;
+  gap: 10px;
+  align-items: center;
 }
 
 .ai-wallpaper-text {
@@ -951,7 +1084,9 @@ button:active {
   width: 100%;
   overflow: hidden;
   border-radius: 18px;
+  border: 2px solid #fbd97f;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+  box-sizing: border-box;
 }
 
 .ai-wallpaper-image {
@@ -976,6 +1111,30 @@ button:active {
 .ai-wallpaper-actions-top-row {
   display: flex;
   gap: 10px;
+}
+
+.ai-wallpaper-actions-icons {
+  width: 100%;
+  justify-content: center;
+}
+
+.ai-icon-button {
+  width: auto;
+  max-width: none;
+  flex: 1 1 0%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+}
+
+.ai-icon-button img {
+  width: 100%;
+  height: auto;
+  display: block;
+  /* smaller buttons (requested) */
+  max-width: clamp(46px, 16vw, 64px);
 }
 
 .ai-wallpaper-btn.full-width {

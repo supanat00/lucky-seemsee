@@ -7,6 +7,7 @@ function ShakeScreen({ onBack, onSequenceDone, shakeTrigger }) {
     const timerRef = useRef(null)
     const timeoutRef = useRef(null)
     const preloadRef = useRef([])
+    const preloadRadienRef = useRef([])
 
     // รีเซ็ต state เมื่อ component mount ใหม่
     useEffect(() => {
@@ -34,6 +35,16 @@ function ShakeScreen({ onBack, onSequenceDone, shakeTrigger }) {
             .map((key) => merged[key])
     }, [])
 
+    // radien animation frames (behind stick)
+    const radienFrames = useMemo(() => {
+        const pngs = import.meta.glob('../assets/radien_stick_animation/radien_*.png', { eager: true, import: 'default' })
+        const webps = import.meta.glob('../assets/radien_stick_animation/radien_*.webp', { eager: true, import: 'default' })
+        const merged = { ...pngs, ...webps }
+        return Object.keys(merged)
+            .sort()
+            .map((key) => merged[key])
+    }, [])
+
     // preload frames for smoother playback
     useEffect(() => {
         preloadRef.current = []
@@ -44,6 +55,16 @@ function ShakeScreen({ onBack, onSequenceDone, shakeTrigger }) {
             preloadRef.current.push(img)
         })
     }, [frames])
+
+    useEffect(() => {
+        preloadRadienRef.current = []
+        radienFrames.forEach((src) => {
+            const img = new Image()
+            img.src = src
+            if (img.decode) img.decode().catch(() => { })
+            preloadRadienRef.current.push(img)
+        })
+    }, [radienFrames])
 
     const startSequence = useCallback(() => {
         if (timerRef.current) {
@@ -128,6 +149,8 @@ function ShakeScreen({ onBack, onSequenceDone, shakeTrigger }) {
     }, [])
 
     const currentFrame = frames[frameIndex] ?? null
+    const currentRadienFrame =
+        radienFrames.length > 0 ? (radienFrames[frameIndex % radienFrames.length] ?? null) : null
 
     return (
         <div className="app-root">
@@ -139,6 +162,14 @@ function ShakeScreen({ onBack, onSequenceDone, shakeTrigger }) {
             <div className="shake-container only-sequence">
                 <div className="stick-preview">
                     <img src={step2} alt="" aria-hidden="true" className="stick-bg" />
+                    {currentRadienFrame ? (
+                        <img
+                            src={currentRadienFrame}
+                            alt=""
+                            aria-hidden="true"
+                            className={`radien-frame ${isPlaying ? 'playing' : ''}`}
+                        />
+                    ) : null}
                     {currentFrame ? (
                         <img
                             src={currentFrame}

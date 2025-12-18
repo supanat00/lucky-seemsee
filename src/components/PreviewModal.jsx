@@ -1,6 +1,11 @@
-import { useRef, useEffect, useState } from 'react'
+import { useRef, useEffect, useMemo, useState } from 'react'
 import { detectBrowserAndPlatform } from '../utils/deviceUtils'
+import { isInLine } from '../services/liffService'
 import './PreviewModal.css'
+
+import btnDownload from '../assets/buttons/download.png'
+import btnShare from '../assets/buttons/share.png'
+import btnPlayAgain from '../assets/buttons/playagain.png'
 
 /**
  * PreviewModal
@@ -11,9 +16,9 @@ import './PreviewModal.css'
  */
 const PreviewModal = ({ preview, onRetry, onSave, onShare }) => {
   const videoRef = useRef(null)
-  const [areAssetsReady, setAreAssetsReady] = useState(true) // ไม่ต้อง preload background image
-  const [showFeedback, setShowFeedback] = useState(false)
-  const [feedbackMessage, setFeedbackMessage] = useState('')
+  const [areAssetsReady] = useState(true) // ไม่ต้อง preload background image
+
+  const inLine = useMemo(() => isInLine(), [])
 
   // --- Platform detection ---
   let isIOS_Safari = false
@@ -34,23 +39,14 @@ const PreviewModal = ({ preview, onRetry, onSave, onShare }) => {
     }
   }, [preview.type, preview.url])
 
-  // ฟังก์ชันแสดงผลยืนยัน
-  const showFeedbackMessage = (message) => {
-    setFeedbackMessage(message)
-    setShowFeedback(true)
-    setTimeout(() => setShowFeedback(false), 2000)
-  }
-
   // ฟังก์ชันจัดการการบันทึก
   const handleSave = () => {
     onSave()
-    showFeedbackMessage('✅ บันทึกแล้ว!')
   }
 
   // ฟังก์ชันจัดการการแชร์
   const handleShare = () => {
     onShare()
-    showFeedbackMessage('📤 แชร์แล้ว!')
   }
 
   if (!preview.type || !preview.url) return null
@@ -96,37 +92,36 @@ const PreviewModal = ({ preview, onRetry, onSave, onShare }) => {
             {isIOS_Safari ? (
               <>
                 <div className="preview-actions-top-row">
-                  <button className="preview-button primary" onClick={onRetry}>
-                    เล่นอีกครั้ง
+                  <button className="image-button preview-icon-button" type="button" onClick={handleShare} aria-label="บันทึก">
+                    <img src={btnDownload} alt="บันทึก" />
                   </button>
-                  <button className="preview-button secondary" onClick={handleShare}>
-                    บันทึก
+                  <button className="image-button preview-icon-button" type="button" onClick={onRetry} aria-label="เล่นอีกครั้ง">
+                    <img src={btnPlayAgain} alt="เล่นอีกครั้ง" />
                   </button>
                 </div>
               </>
             ) : (
               <>
                 <div className="preview-actions-top-row">
-                  <button className="preview-button secondary" onClick={handleSave}>
-                    บันทึก
+                  {/* Chrome/Android: show 3 buttons in one row (download/share/playagain) */}
+                  <button className="image-button preview-icon-button" type="button" onClick={handleSave} aria-label="บันทึก">
+                    <img src={btnDownload} alt="บันทึก" />
                   </button>
-                  <button className="preview-button secondary" onClick={handleShare}>
-                    แชร์
+
+                  {!inLine && (
+                    <button className="image-button preview-icon-button" type="button" onClick={handleShare} aria-label="แชร์">
+                      <img src={btnShare} alt="แชร์" />
+                    </button>
+                  )}
+
+                  <button className="image-button preview-icon-button" type="button" onClick={onRetry} aria-label="เล่นอีกครั้ง">
+                    <img src={btnPlayAgain} alt="เล่นอีกครั้ง" />
                   </button>
                 </div>
-                <button className="preview-button primary full-width retry-bottom-btn" style={{ marginTop: '14px' }} onClick={onRetry}>
-                  เล่นอีกครั้ง
-                </button>
               </>
             )}
           </div>
 
-          {/* --- การแสดงผลยืนยัน --- */}
-          {showFeedback && (
-            <div className="feedback-message">
-              <p>{feedbackMessage}</p>
-            </div>
-          )}
         </div>
       )}
     </>

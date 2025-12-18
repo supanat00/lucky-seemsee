@@ -1,9 +1,13 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { detectBrowserAndPlatform } from '../utils/deviceUtils'
 import { isInLine, openLiffWindow } from '../services/liffService'
 import head02 from '../assets/images/head02.png'
 import chooseFrame from '../assets/images/choose.png'
+import waitingImg from '../assets/images/waiting.png'
 import button04 from '../assets/buttons/button04.png'
+import btnDownload from '../assets/buttons/download.png'
+import btnShare from '../assets/buttons/share.png'
+import btnPlayAgain from '../assets/buttons/playagain.png'
 
 function WallpaperScreen({
   onBack,
@@ -22,6 +26,7 @@ function WallpaperScreen({
   const [modalOpen, setModalOpen] = useState(null) // 'topic' | 'zodiac' | null
 
   const isBusy = isGenerating || !!aiResult
+  const [loadingFrameIdx, setLoadingFrameIdx] = useState(0)
 
   const { isIOS, isSafari, isAndroid, isChrome } = useMemo(() => {
     try {
@@ -42,6 +47,37 @@ function WallpaperScreen({
     if (inLine) return aiResult.cloudUrl || aiResult.imageSrc || null
     return aiResult.imageSrc || aiResult.cloudUrl || null
   }, [aiResult, inLine])
+
+  const loadingFrames = useMemo(() => {
+    const pngs = import.meta.glob('../assets/horse_loading/horse_*.png', { eager: true, import: 'default' })
+    const merged = { ...pngs }
+    return Object.keys(merged)
+      .sort()
+      .map((key) => merged[key])
+  }, [])
+
+  // Animate loading sequence while generating
+  useEffect(() => {
+    if (!isGenerating || loadingFrames.length === 0) return
+
+    let rafId = 0
+    let intervalId = 0
+    const fps = 12
+    const interval = 1000 / fps
+
+    rafId = requestAnimationFrame(() => {
+      // reset to start (async to satisfy lint rule)
+      setLoadingFrameIdx(0)
+      intervalId = window.setInterval(() => {
+        setLoadingFrameIdx((prev) => (prev + 1) % loadingFrames.length)
+      }, interval)
+    })
+
+    return () => {
+      cancelAnimationFrame(rafId)
+      if (intervalId) window.clearInterval(intervalId)
+    }
+  }, [isGenerating, loadingFrames.length])
 
   const openImageLink = async () => {
     const url = bestImageUrl
@@ -162,72 +198,77 @@ function WallpaperScreen({
 
   return (
     <div className="app-root wallpaper-root">
-      <button className="back-icon" type="button" onClick={onBack} aria-label="Back">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </button>
+      {/* Hide underlying UI while generating to avoid overlap */}
+      {!isGenerating && (
+        <>
+          <button className="back-icon" type="button" onClick={onBack} aria-label="Back">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
 
-      <div className="wall-container">
-        <div className="wall-head">
-          <img src={head02} alt="สร้างวอลเปเปอร์มงคล" />
-        </div>
+          <div className="wall-container">
+            <div className="wall-head">
+              <img src={head02} alt="สร้างวอลเปเปอร์มงคล" />
+            </div>
 
-        <div className="wall-choose">
-          <img src={chooseFrame} alt="" aria-hidden="true" className="choose-frame" />
+            <div className="wall-choose">
+              <img src={chooseFrame} alt="" aria-hidden="true" className="choose-frame" />
 
-          <div className="choose-grid">
-            <div className="choose-field">
-              <div className="select-wrapper">
-                <button
-                  type="button"
-                  className="select-button"
-                  onClick={() => setModalOpen('topic')}
-                  aria-label="เลือกเสริมดวง"
-                  disabled={isBusy}
-                >
-                  <span className="select-button-text">
-                    {getSelectedLabel('topic') || '\u00A0'}
-                  </span>
-                  <svg className="select-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
+              <div className="choose-grid">
+                <div className="choose-field">
+                  <div className="select-wrapper">
+                    <button
+                      type="button"
+                      className="select-button"
+                      onClick={() => setModalOpen('topic')}
+                      aria-label="เลือกเสริมดวง"
+                      disabled={isBusy}
+                    >
+                      <span className="select-button-text">
+                        {getSelectedLabel('topic') || '\u00A0'}
+                      </span>
+                      <svg className="select-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="choose-field">
+                  <div className="select-wrapper">
+                    <button
+                      type="button"
+                      className="select-button"
+                      onClick={() => setModalOpen('zodiac')}
+                      aria-label="เลือกปีนักษัตร"
+                      disabled={isBusy}
+                    >
+                      <span className="select-button-text">
+                        {getSelectedLabel('zodiac') || '\u00A0'}
+                      </span>
+                      <svg className="select-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="choose-field">
-              <div className="select-wrapper">
-                <button
-                  type="button"
-                  className="select-button"
-                  onClick={() => setModalOpen('zodiac')}
-                  aria-label="เลือกปีนักษัตร"
-                  disabled={isBusy}
-                >
-                  <span className="select-button-text">
-                    {getSelectedLabel('zodiac') || '\u00A0'}
-                  </span>
-                  <svg className="select-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
-              </div>
+            <div className="wall-action">
+              <button
+                className="image-button"
+                type="button"
+                onClick={onCreate}
+                disabled={!selectedTopic || !selectedZodiac || isBusy}
+              >
+                <img src={button04} alt="สร้างวอลเปเปอร์มงคล" />
+              </button>
             </div>
           </div>
-        </div>
-
-        <div className="wall-action">
-          <button
-            className="image-button"
-            type="button"
-            onClick={onCreate}
-            disabled={!selectedTopic || !selectedZodiac || isBusy}
-          >
-            <img src={button04} alt="สร้างวอลเปเปอร์มงคล" />
-          </button>
-        </div>
-      </div>
+        </>
+      )}
 
       {/* Modal */}
       {modalOpen && !isBusy && (
@@ -276,18 +317,27 @@ function WallpaperScreen({
 
       {/* AI generation loading UI (mock) */}
       {isGenerating && (
-        <div className="ai-wallpaper-overlay" role="status" aria-live="polite">
-          <div className="ai-wallpaper-card">
-            <div className="ai-wallpaper-text">
-              กำลังสร้างภาพ
-              <span className="ai-dots" aria-hidden="true">
-                <span>.</span>
-                <span>.</span>
-                <span>.</span>
-              </span>
-            </div>
-            <div className="ai-wallpaper-subtext">
-              โปรดรอสักครู่
+        <div className="ai-wallpaper-overlay ai-wallpaper-overlay--loading" role="status" aria-live="polite">
+          <div className="ai-loading-layout">
+            {loadingFrames.length > 0 && (
+              <img
+                className="ai-loading-seq"
+                src={loadingFrames[loadingFrameIdx] || loadingFrames[0]}
+                alt=""
+                aria-hidden="true"
+              />
+            )}
+
+            <div className="ai-loading-waiting-wrap" aria-hidden="true">
+              <img className="ai-loading-waiting" src={waitingImg} alt="" aria-hidden="true" />
+              <div className="ai-loading-waiting-text">
+                กำลังเสริมดวง
+                <span className="ai-dots" aria-hidden="true">
+                  <span>.</span>
+                  <span>.</span>
+                  <span>.</span>
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -296,56 +346,59 @@ function WallpaperScreen({
       {/* AI result UI (mock) */}
       {aiResult && (
         <div className="ai-wallpaper-overlay" role="dialog" aria-modal="true">
-          <div className="ai-wallpaper-card ai-wallpaper-result">
-            {aiResult.imageSrc && (
-              <div className="ai-wallpaper-image-wrap">
-                <img className="ai-wallpaper-image" src={aiResult.imageSrc} alt="AI wallpaper result" />
-              </div>
-            )}
+          {/* Match horse PreviewModal sizing/placement */}
+          <div className="ai-preview-stack">
+            <div className="ai-preview-frame">
+              {aiResult.imageSrc ? (
+                <img className="ai-preview-content" src={aiResult.imageSrc} alt="AI wallpaper result" />
+              ) : (
+                <div className="ai-preview-placeholder" />
+              )}
+            </div>
 
-            {isIosSafari ? (
-              <div className="ai-wallpaper-actions ai-wallpaper-actions-top-row">
-                <button type="button" className="ai-wallpaper-btn secondary" onClick={shareImageFile} disabled={!bestImageUrl}>
-                  บันทึก
-                </button>
-                <button type="button" className="ai-wallpaper-btn" onClick={onPlayAgain}>
-                  เล่นอีกครั้ง
-                </button>
-              </div>
-            ) : inLine ? (
-              <div className="ai-wallpaper-actions ai-wallpaper-actions-top-row">
-                <button type="button" className="ai-wallpaper-btn secondary" onClick={openImageLink} disabled={!bestImageUrl}>
-                  บันทึก&แชร์
-                </button>
-                <button type="button" className="ai-wallpaper-btn" onClick={onPlayAgain}>
-                  เล่นอีกครั้ง
-                </button>
-              </div>
-            ) : isAndroidChrome ? (
-              <div className="ai-wallpaper-actions ai-wallpaper-actions-column">
-                <div className="ai-wallpaper-actions-top-row">
-                  <button type="button" className="ai-wallpaper-btn secondary" onClick={downloadImage} disabled={!bestImageUrl}>
-                    บันทึก
+            <div className="ai-preview-actions-container">
+              {isAndroidChrome ? (
+                <div className="ai-preview-actions-row">
+                  <button type="button" className="image-button ai-icon-button" onClick={downloadImage} disabled={!bestImageUrl} aria-label="บันทึก">
+                    <img src={btnDownload} alt="บันทึก" />
                   </button>
-                  <button type="button" className="ai-wallpaper-btn secondary" onClick={shareImageFile} disabled={!bestImageUrl}>
-                    แชร์
+                  <button type="button" className="image-button ai-icon-button" onClick={shareImageFile} disabled={!bestImageUrl} aria-label="แชร์">
+                    <img src={btnShare} alt="แชร์" />
+                  </button>
+                  <button type="button" className="image-button ai-icon-button" onClick={onPlayAgain} aria-label="เล่นอีกครั้ง">
+                    <img src={btnPlayAgain} alt="เล่นอีกครั้ง" />
                   </button>
                 </div>
-                <button type="button" className="ai-wallpaper-btn full-width" onClick={onPlayAgain}>
-                  เล่นอีกครั้ง
-                </button>
-              </div>
-            ) : (
-              <div className="ai-wallpaper-actions ai-wallpaper-actions-top-row">
-                <button type="button" className="ai-wallpaper-btn secondary" onClick={openImageLink} disabled={!bestImageUrl}>
-                  บันทึก
-                </button>
-                <button type="button" className="ai-wallpaper-btn" onClick={onPlayAgain}>
-                  เล่นอีกครั้ง
-                </button>
-              </div>
-            )}
-
+              ) : inLine ? (
+                <div className="ai-preview-actions-row">
+                  {/* LIFF: use download icon instead of "download&share" */}
+                  <button type="button" className="image-button ai-icon-button" onClick={openImageLink} disabled={!bestImageUrl} aria-label="บันทึก">
+                    <img src={btnDownload} alt="บันทึก" />
+                  </button>
+                  <button type="button" className="image-button ai-icon-button" onClick={onPlayAgain} aria-label="เล่นอีกครั้ง">
+                    <img src={btnPlayAgain} alt="เล่นอีกครั้ง" />
+                  </button>
+                </div>
+              ) : isIosSafari ? (
+                <div className="ai-preview-actions-row">
+                  <button type="button" className="image-button ai-icon-button" onClick={shareImageFile} disabled={!bestImageUrl} aria-label="บันทึก">
+                    <img src={btnDownload} alt="บันทึก" />
+                  </button>
+                  <button type="button" className="image-button ai-icon-button" onClick={onPlayAgain} aria-label="เล่นอีกครั้ง">
+                    <img src={btnPlayAgain} alt="เล่นอีกครั้ง" />
+                  </button>
+                </div>
+              ) : (
+                <div className="ai-preview-actions-row">
+                  <button type="button" className="image-button ai-icon-button" onClick={downloadImage} disabled={!bestImageUrl} aria-label="บันทึก">
+                    <img src={btnDownload} alt="บันทึก" />
+                  </button>
+                  <button type="button" className="image-button ai-icon-button" onClick={onPlayAgain} aria-label="เล่นอีกครั้ง">
+                    <img src={btnPlayAgain} alt="เล่นอีกครั้ง" />
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

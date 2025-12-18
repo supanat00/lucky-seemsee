@@ -17,7 +17,12 @@
   padding-top: 16px;
   padding-bottom: env(safe-area-inset-bottom, 0px);
   box-sizing: border-box;
-  background: rgba(0, 0, 0, 0.85);
+  /* bg_save.png as preview background (same for photo + video preview) */
+  background-color: transparent;
+  background-image: url("../assets/bg_save.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   backdrop-filter: blur(4px);
 }
 
@@ -69,7 +74,7 @@
   margin: 16px auto 0 auto;
   background: none;
   border-radius: 24px;
-  border: 2px solid white;
+  border: 2px solid #fbd97f;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), 0 2px 8px rgba(0, 0, 0, 0.15);
   box-sizing: border-box;
 }
@@ -112,16 +117,34 @@
 .preview-actions-top-row {
   display: flex;
   flex-direction: row;
-  gap: 16px;
+  gap: 10px;
   width: 100%;
   margin: 0;
   align-items: stretch;
 }
 
-.preview-actions-top-row > .preview-button {
-  width: auto;
+/* Icon buttons (use assets/buttons/*.png) */
+.preview-actions-top-row > .preview-icon-button {
   flex: 1 1 0%;
   min-width: 0;
+  width: auto;
+  max-width: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-icon-button {
+  width: auto;
+  max-width: none;
+}
+
+.preview-icon-button img {
+  width: 100%;
+  height: auto;
+  display: block;
+  /* smaller buttons (requested) */
+  max-width: clamp(46px, 16vw, 64px);
 }
 
 .preview-button {
