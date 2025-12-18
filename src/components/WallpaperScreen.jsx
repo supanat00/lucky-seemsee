@@ -128,6 +128,12 @@ function WallpaperScreen({
       // No share support -> download as best effort
       await downloadImage()
     } catch (e) {
+      // Android/Chrome often rejects with AbortError when the share sheet is dismissed
+      // (sometimes even after successful share). Do NOT fallback to download in that case.
+      if (e?.name === 'AbortError') {
+        return
+      }
+
       console.warn('share file failed, fallback to download', e)
       await downloadImage()
     }
