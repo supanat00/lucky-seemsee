@@ -110,14 +110,19 @@ VITE_LIFF_ID=YOUR_LIFF_ID
 สำหรับ flow เฉพาะใน LINE LIFF (อัปโหลดรูปขึ้น Cloudinary แล้วเปิดลิงก์ด้วย external browser):
 
 ```bash
+# Option A (recommended): unsigned upload preset
 VITE_CLOUDINARY_URL=https://api.cloudinary.com/v1_1/YOUR_CLOUD_NAME/image/upload
-# optional (default: ml_default)
-VITE_CLOUDINARY_UPLOAD_PRESET=YOUR_UNSIGNED_UPLOAD_PRESET
-# optional (default: lucky-seemsee)
+VITE_CLOUDINARY_UPLOAD_PRESET=ml_default
 VITE_CLOUDINARY_FOLDER=lucky-seemsee
+
+# Option B: signed upload (NOT SAFE in client, but supported if you insist for LIFF testing)
+# cloudinary://api_key:api_secret@cloud_name
+# VITE_CLOUDINARY_URL=cloudinary://YOUR_API_KEY:YOUR_API_SECRET@YOUR_CLOUD_NAME
 ```
 
-หมายเหตุ: โปรเจกต์นี้ใช้ **unsigned upload preset** (ห้ามใส่ api secret ในฝั่ง client)
+หมายเหตุ:
+- แบบ unsigned: ใช้ **upload preset** (ห้ามใส่ api secret ในฝั่ง client)
+- แบบ signed: ต้องมี api_secret เพื่อทำ signature → **ไม่ปลอดภัย** เพราะ `VITE_` จะถูก bundle ไปฝั่ง client
 
 ## OpenAI Image Generation (Wallpaper)
 

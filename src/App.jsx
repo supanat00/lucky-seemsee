@@ -461,8 +461,10 @@ function App() {
       // Cache busting for external browser:
       // Even if we overwrite the same public_id, external browsers/CDNs can serve a cached (old) image.
       // Cloudinary returns a "version" on upload; use it (fallback to timestamp) to force a fresh URL.
-      const cacheKey = up.version || Date.now()
-      const cloudUrl = `${up.url}${up.url.includes('?') ? '&' : '?'}v=${encodeURIComponent(cacheKey)}`
+      // Use ms-level cache busting to avoid "old image" when multiple overwrites happen quickly
+      // (Cloudinary version can be second-level; LINE/external browser can aggressively cache).
+      const cacheKey = `${up.version || '0'}-${Date.now()}`
+      const cloudUrl = `${up.url}${up.url.includes('?') ? '&' : '?'}cb=${encodeURIComponent(cacheKey)}`
 
       setAiWallpaperResult({
         imageSrc: gen.base64,
