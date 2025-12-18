@@ -105,6 +105,19 @@ VITE_LIFF_ID=YOUR_LIFF_ID
 
 ถ้าไม่ตั้งค่า `VITE_LIFF_ID` แอปจะรันแบบ browser ปกติ (LIFF จะถูกข้ามไป)
 
+## Cloudinary (LIFF wallpaper only)
+
+สำหรับ flow เฉพาะใน LINE LIFF (อัปโหลดรูปขึ้น Cloudinary แล้วเปิดลิงก์ด้วย external browser):
+
+```bash
+VITE_CLOUDINARY_CLOUD_NAME=YOUR_CLOUD_NAME
+VITE_CLOUDINARY_UPLOAD_PRESET=YOUR_UNSIGNED_UPLOAD_PRESET
+# optional
+VITE_CLOUDINARY_FOLDER=lucky-seemsee
+```
+
+หมายเหตุ: โปรเจกต์นี้ใช้ **unsigned upload preset** (ห้ามใส่ api secret ในฝั่ง client)
+
 ## 📱 Mobile Considerations
 
 - ใช้ `env(safe-area-inset-bottom)` สำหรับ safe area บน iOS

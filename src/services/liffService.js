@@ -51,6 +51,20 @@ export function isInLine() {
   }
 }
 
+export async function getLineUserId() {
+  const inst = await initLiff()
+  if (!inst) return null
+
+  try {
+    if (!inst.isInClient()) return null
+    const profile = await inst.getProfile()
+    return profile?.userId || null
+  } catch (e) {
+    console.warn('getLineUserId failed:', e)
+    return null
+  }
+}
+
 export async function openLiffWindow(url, external = true) {
   if (!url) return false
 
